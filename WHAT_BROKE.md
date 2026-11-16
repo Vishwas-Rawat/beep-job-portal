@@ -46,6 +46,20 @@ Real problems hit while building, logged as they happened.
 - **Render's IP:** Render lists two /24 outbound ranges (512 IPs), but Careerjet allows only 8 single IPs. Added a token-protected `/api/admin/egress-ip`; 3 calls returned the same IP, so that one IP was declared. Risk: it may change after a redeploy, so re-check if Careerjet drops to 0.
 - **Then 401 "Invalid API key provided" on Render only:** the key pasted into Render's env was wrong while the local `.env` was right. The 403 → 401 change showed the IP was now accepted, so the key was the only thing left. Re-pasted it; live run then fetched 1,122 Careerjet posts (705 new, 2,358 total).
 
+### 10. Planned LLM model was closed to new users
+- **Problem:** First Gemini call returned 404: `gemini-2.5-flash is no longer available to new users`.
+- **Cause:** Model lineup changed; older plans/tutorials still name 2.5.
+- **Fix:** Listed models with the key, tested a few, chose `gemini-3.5-flash-lite` (cheapest current one). Model is a config value, so nothing in code changed.
+
+### 11. Spring AI called the wrong URL for Gemini
+- **Problem:** Gemini's OpenAI-compatible endpoint is `.../v1beta/openai/chat/completions`, but Spring AI appends `/v1/chat/completions` to the base URL.
+- **Fix:** Set `spring.ai.openai.chat.completions-path=/chat/completions` (env `LLM_COMPLETIONS_PATH`).
+
+### 12. Gemini returned 503 (overloaded) during the full tagging run
+- **Problem:** Several `HTTP 503` errors while tagging 2,315 posts.
+- **Cause:** Provider-side overload; free tier also has unpublished rate limits.
+- **Fix:** Spring AI retry with exponential backoff on 429/503 (5 attempts, 5s → 60s). All retries succeeded: 0 failed batches, 0 fallbacks, 1 invalid role out of 2,315.
+
 ### 8. Neon project first created in the wrong region
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
 - **Cause:** Didn't pick the region on project creation.
