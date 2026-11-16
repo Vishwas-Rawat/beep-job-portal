@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fresher Jobs India</title>
+  <meta name="description" content="Internship and entry-level jobs across India, refreshed daily from official company job boards.">
+  <!-- Temporary page. Replaced by the React app in Step 6. -->
+  <style>
+    :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6b6b73; --line:#e4e4e7; --accent:#2563eb; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#111113; --card:#1b1b1f; --text:#ececf0; --muted:#9a9aa3; --line:#2c2c33; --accent:#60a5fa; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { margin: 0 0 4px; font-size: 26px; }
+    .sub { color: var(--muted); margin: 0 0 20px; }
+    input { width:100%; padding:12px 14px; font-size:16px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
+    .meta { color:var(--muted); font-size:13px; margin:10px 2px 14px; }
+    .job { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+    .job a { color:var(--accent); text-decoration:none; font-weight:600; font-size:16px; }
+    .job a:hover { text-decoration:underline; }
+    .row { color:var(--muted); font-size:14px; margin-top:2px; }
+    .pager { display:flex; gap:8px; justify-content:center; margin-top:16px; }
+    button { padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); cursor:pointer; }
+    button:disabled { opacity:.4; cursor:default; }
+    footer { color:var(--muted); font-size:13px; margin-top:32px; border-top:1px solid var(--line); padding-top:14px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Fresher Jobs India</h1>
+  <p class="sub">Jobs and internships across India for students and freshers, refreshed daily from official company job boards.</p>
+  <input id="q" type="search" placeholder="Search title, company or city (e.g. java, Pune, analyst)" autocomplete="off">
+  <div class="meta" id="meta">Loading…</div>
+  <div id="list"></div>
+  <div class="pager">
+    <button id="prev">← Prev</button>
+    <button id="next">Next →</button>
+  </div>
+  <footer>
+    Jobs come from public company job boards (Greenhouse, Lever, Ashby, SmartRecruiters).
+    "Apply" opens the original posting. Student demo project.
+  </footer>
+</main>
+<script>
+  const state = { q: '', page: 0, totalPages: 0 };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const day = iso => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+
+  async function load() {
+    const res = await fetch(`/api/jobs?q=${encodeURIComponent(state.q)}&page=${state.page}&size=20`);
+    const data = await res.json();
+    state.totalPages = data.totalPages;
+    $('list').innerHTML = data.items.map(j => `
+      <div class="job">
+        <a href="${esc(j.applyUrl)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>
+        <div class="row">${esc(j.company)} · ${esc(j.location)}</div>
+        <div class="row">Posted ${esc(day(j.postedAt))}</div>
+      </div>`).join('') || '<p class="meta">No jobs match.</p>';
+    $('prev').disabled = state.page === 0;
+    $('next').disabled = state.page + 1 >= state.totalPages;
+    const stats = await (await fetch('/api/stats')).json();
+    $('meta').textContent = `${data.total} jobs` + (state.q ? ` matching "${state.q}"` : '') +
+      (stats.lastUpdated ? ` · last updated ${new Date(stats.lastUpdated).toLocaleString('en-IN')}` : '');
+  }
+
+  let timer;
+  $('q').addEventListener('input', e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); state.page = 0; load(); }, 300); });
+  $('prev').onclick = () => { state.page--; load(); window.scrollTo(0, 0); };
+  $('next').onclick = () => { state.page++; load(); window.scrollTo(0, 0); };
+  load().catch(() => $('meta').textContent = 'Could not load jobs.');
+</script>
+</body>
+</html>

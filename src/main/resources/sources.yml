@@ -1,0 +1,74 @@
+# Job sources. All are official public job-board APIs that companies publish
+# so their openings can be shown anywhere. No API key, no scraping.
+# Add a company = add one line. Disable a whole source = enabled: false.
+sources:
+  http-timeout-seconds: 30
+  delay-between-companies-ms: 300   # be polite to the APIs
+  max-jobs-per-company: 200         # stop one big employer from flooding the list
+
+  greenhouse:   # https://developers.greenhouse.io/job-board.html
+    enabled: true
+    companies:
+      - { slug: okta,        name: Okta }
+      - { slug: databricks,  name: Databricks }
+      - { slug: zscaler,     name: Zscaler }
+      - { slug: mongodb,     name: MongoDB }
+      - { slug: stripe,      name: Stripe }
+      - { slug: highradius,  name: HighRadius }
+      - { slug: inmobi,      name: InMobi }
+      - { slug: gitlab,      name: GitLab }
+      - { slug: rubrik,      name: Rubrik }
+      - { slug: zenoti,      name: Zenoti }
+      - { slug: hackerrank,  name: HackerRank }
+      - { slug: toast,       name: Toast }
+      - { slug: celonis,     name: Celonis }
+      - { slug: elastic,     name: Elastic }
+      - { slug: truecaller,  name: Truecaller }
+      - { slug: airbnb,      name: Airbnb }
+      - { slug: agoda,       name: Agoda }
+      - { slug: sumologic,   name: Sumo Logic }
+      - { slug: twilio,      name: Twilio }
+      - { slug: druva,       name: Druva }
+      - { slug: coinbase,    name: Coinbase }
+      - { slug: groww,       name: Groww }
+      - { slug: datadog,     name: Datadog }
+      - { slug: turing,      name: Turing }
+      - { slug: observeai,   name: Observe.AI }
+      - { slug: samsara,     name: Samsara }
+      - { slug: newrelic,    name: New Relic }
+      - { slug: yugabyte,    name: Yugabyte }
+
+  lever:        # https://github.com/lever/postings-api
+    enabled: true
+    companies:
+      - { slug: paytm,       name: Paytm }
+      - { slug: meesho,      name: Meesho }
+      - { slug: hevodata,    name: Hevo Data }
+      - { slug: zeta,        name: Zeta }
+      - { slug: fampay,      name: FamPay }
+      - { slug: mindtickle,  name: Mindtickle }
+      - { slug: cred,        name: CRED }
+      - { slug: nium,        name: Nium }
+
+  ashby:        # https://developers.ashbyhq.com/docs/public-job-posting-api
+    enabled: true
+    companies:
+      - { slug: tekion,      name: Tekion }
+      - { slug: sarvam,      name: Sarvam AI }
+      - { slug: headout,     name: Headout }
+      - { slug: spotdraft,   name: SpotDraft }
+      - { slug: plane,       name: Plane }
+      - { slug: composio,    name: Composio }
+      - { slug: atlan,       name: Atlan }
+
+  smartrecruiters:  # https://developers.smartrecruiters.com/docs/posting-api
+    enabled: true
+    companies:
+      - { slug: BoschGroup,    name: Bosch }
+      - { slug: ServiceNow,    name: ServiceNow }
+      - { slug: Sutherland,    name: Sutherland }
+      - { slug: Experian,      name: Experian }
+      - { slug: Freshworks,    name: Freshworks }
+      - { slug: AveryDennison, name: Avery Dennison }
+      - { slug: Continental,   name: Continental }
+      - { slug: Endava,        name: Endava }

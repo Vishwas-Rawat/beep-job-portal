@@ -1,0 +1,27 @@
+# Indian city names. Format:  Canonical: alias, alias, ...
+# Aliases are matched as whole words, case-insensitive.
+# If a location mentions several cities, the one that appears first wins.
+Bengaluru: bengaluru, bangalore, blr
+Mumbai: mumbai, bombay, navi mumbai, thane
+Delhi: new delhi, delhi
+Gurugram: gurugram, gurgaon
+Noida: noida, greater noida
+Pune: pune
+Hyderabad: hyderabad, secunderabad
+Chennai: chennai, madras
+Kolkata: kolkata, calcutta
+Ahmedabad: ahmedabad
+Jaipur: jaipur
+Kochi: kochi, cochin
+Coimbatore: coimbatore
+Indore: indore
+Chandigarh: chandigarh, mohali, panchkula
+Thiruvananthapuram: thiruvananthapuram, trivandrum
+Mysuru: mysuru, mysore
+Nagpur: nagpur
+Lucknow: lucknow
+Bhubaneswar: bhubaneswar
+Vadodara: vadodara, baroda
+Visakhapatnam: visakhapatnam, vizag
+Surat: surat
+Goa: goa, panaji

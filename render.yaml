@@ -1,0 +1,23 @@
+# Render Blueprint: Render reads this file and creates the web service.
+services:
+  - type: web
+    name: beep-jobs
+    runtime: docker
+    plan: free
+    region: singapore          # closest Render region to India; put Neon in Singapore too
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_URL            # jdbc:postgresql://<neon-host>/<db>?sslmode=require
+        sync: false            # sync:false = Render asks you for the value, never stored in git
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ADMIN_TOKEN       # Render generates a random secret
+        generateValue: true
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
