@@ -10,13 +10,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-/** Public read API used by the web page. Role/city/fresher filters come with the LLM tagger. */
+/** Public read API used by the web page. */
 @RestController
 public class JobController {
 
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_CITIES = 25;
 
     private final JobRepository jobs;
     private final RunLogRepository runs;
@@ -26,14 +28,18 @@ public class JobController {
         this.runs = runs;
     }
 
-    /** GET /api/jobs?q=java&page=0&size=20  (newest first) */
+    /** GET /api/jobs?q=java&role=Data%20Analyst&city=Pune&fresher=true&page=0&size=20  (newest first) */
     @GetMapping("/api/jobs")
     public Map<String, Object> list(@RequestParam(defaultValue = "") String q,
+                                    @RequestParam(defaultValue = "") String role,
+                                    @RequestParam(defaultValue = "") String city,
+                                    @RequestParam(defaultValue = "false") boolean fresher,
                                     @RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "20") int size) {
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
                 Sort.by(Sort.Order.desc("postedAt").nullsLast()));
-        Page<JobView> result = jobs.search(q.strip(), pageable).map(JobView::of);
+        Page<JobView> result = jobs.search(q.strip(), role.strip(), city.strip(), fresher, pageable)
+                .map(JobView::of);
         return Map.of(
                 "items", result.getContent(),
                 "total", result.getTotalElements(),
@@ -41,13 +47,28 @@ public class JobController {
                 "totalPages", result.getTotalPages());
     }
 
-    /** GET /api/stats -> total jobs + when the last successful refresh finished */
+    /** GET /api/filters -> roles and top cities with counts, for the dropdowns */
+    @GetMapping("/api/filters")
+    public Map<String, Object> filters() {
+        return Map.of(
+                "roles", toCounts(jobs.countByRole(), Integer.MAX_VALUE),
+                "cities", toCounts(jobs.countByCity(), MAX_CITIES));
+    }
+
+    /** GET /api/stats -> totals + when the last successful run finished */
     @GetMapping("/api/stats")
     public Map<String, Object> stats() {
         Map<String, Object> out = new HashMap<>();
         out.put("totalJobs", jobs.count());
+        out.put("fresherJobs", jobs.countByIsFresherTrue());
         out.put("lastUpdated", runs.findFirstByStatusOrderByFinishedAtDesc("SUCCESS")
                 .map(RunLog::getFinishedAt).orElse(null));
         return out;
+    }
+
+    private static List<Map<String, Object>> toCounts(List<Object[]> rows, int limit) {
+        return rows.stream().limit(limit)
+                .map(r -> Map.<String, Object>of("name", r[0], "count", r[1]))
+                .toList();
     }
 }

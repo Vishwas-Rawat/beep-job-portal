@@ -25,12 +25,29 @@ public interface JobRepository extends JpaRepository<Job, Long> {
      */
     @Query("""
             select j from Job j
-            where lower(j.title) like lower(concat('%', :q, '%'))
-               or lower(j.company) like lower(concat('%', :q, '%'))
-               or lower(j.locationRaw) like lower(concat('%', :q, '%'))
+            where (lower(j.title) like lower(concat('%', :q, '%'))
+                or lower(j.company) like lower(concat('%', :q, '%'))
+                or lower(j.locationRaw) like lower(concat('%', :q, '%')))
+              and (:role = '' or j.roleTag = :role)
+              and (:city = '' or j.cityTag = :city)
+              and (:fresherOnly = false or j.isFresher = true)
             """)
-    Page<Job> search(@Param("q") String q, Pageable pageable);
+    Page<Job> search(@Param("q") String q, @Param("role") String role, @Param("city") String city,
+                     @Param("fresherOnly") boolean fresherOnly, Pageable pageable);
 
-    /** Jobs the LLM has not tagged yet (and has not given up on). */
-    List<Job> findByRoleTagIsNullAndTagAttemptsLessThan(int maxAttempts);
+    /** [role, count] for the role dropdown, biggest first. */
+    @Query("select j.roleTag, count(j) from Job j where j.roleTag is not null group by j.roleTag order by count(j) desc")
+    List<Object[]> countByRole();
+
+    /** [city, count] for the city dropdown, biggest first. */
+    @Query("select j.cityTag, count(j) from Job j where j.cityTag is not null group by j.cityTag order by count(j) desc")
+    List<Object[]> countByCity();
+
+    long countByIsFresherTrue();
+
+    /** Jobs the LLM has not tagged yet and has not given up on, oldest first. */
+    List<Job> findByRoleTagIsNullAndTagAttemptsLessThanOrderByIdAsc(int maxAttempts, Pageable pageable);
+
+    /** Jobs the LLM gave up on: they get the rule-based fallback. */
+    List<Job> findByRoleTagIsNullAndTagAttemptsGreaterThanEqual(int maxAttempts);
 }

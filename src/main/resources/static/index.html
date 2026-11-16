@@ -4,74 +4,108 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fresher Jobs India</title>
-  <meta name="description" content="Internship and entry-level jobs across India, refreshed daily from official company job boards.">
-  <!-- Temporary page. Replaced by the React app in Step 6. -->
+  <meta name="description" content="Internships and entry-level jobs across India, refreshed daily and tagged by role and city.">
   <style>
-    :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6b6b73; --line:#e4e4e7; --accent:#2563eb; }
+    :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6b6b73; --line:#e4e4e7; --accent:#2563eb; --chip:#eef2ff; --chipText:#3730a3; --ok:#dcfce7; --okText:#166534; }
     @media (prefers-color-scheme: dark) {
-      :root { --bg:#111113; --card:#1b1b1f; --text:#ececf0; --muted:#9a9aa3; --line:#2c2c33; --accent:#60a5fa; }
+      :root { --bg:#111113; --card:#1b1b1f; --text:#ececf0; --muted:#9a9aa3; --line:#2c2c33; --accent:#60a5fa; --chip:#262a40; --chipText:#c7d2fe; --ok:#163322; --okText:#86efac; }
     }
     * { box-sizing: border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
     h1 { margin: 0 0 4px; font-size: 26px; }
     .sub { color: var(--muted); margin: 0 0 20px; }
-    input { width:100%; padding:12px 14px; font-size:16px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
-    .meta { color:var(--muted); font-size:13px; margin:10px 2px 14px; }
+    input[type=search], select { width:100%; padding:11px 12px; font-size:15px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
+    .filters { display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-top:10px; align-items:center; }
+    .toggle { display:flex; align-items:center; gap:8px; white-space:nowrap; padding:0 4px; cursor:pointer; }
+    .toggle input { width:18px; height:18px; }
+    @media (max-width: 560px) { .filters { grid-template-columns: 1fr; } }
+    .meta { color:var(--muted); font-size:13px; margin:12px 2px 14px; }
     .job { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
     .job a { color:var(--accent); text-decoration:none; font-weight:600; font-size:16px; }
     .job a:hover { text-decoration:underline; }
     .row { color:var(--muted); font-size:14px; margin-top:2px; }
+    .chips { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { font-size:12px; padding:2px 8px; border-radius:999px; background:var(--chip); color:var(--chipText); }
+    .chip.ok { background:var(--ok); color:var(--okText); }
     .pager { display:flex; gap:8px; justify-content:center; margin-top:16px; }
     button { padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); cursor:pointer; }
     button:disabled { opacity:.4; cursor:default; }
     footer { color:var(--muted); font-size:13px; margin-top:32px; border-top:1px solid var(--line); padding-top:14px; }
+    footer a { color:var(--accent); }
   </style>
 </head>
 <body>
 <main>
   <h1>Fresher Jobs India</h1>
-  <p class="sub">Jobs and internships across India for students and freshers, refreshed daily from official company job boards.</p>
+  <p class="sub">Internships and entry-level jobs across India, refreshed daily and tagged by role and city.</p>
+
   <input id="q" type="search" placeholder="Search title, company or city (e.g. java, Pune, analyst)" autocomplete="off">
+  <div class="filters">
+    <select id="role"><option value="">All roles</option></select>
+    <select id="city"><option value="">All cities</option></select>
+    <label class="toggle"><input id="fresher" type="checkbox" checked> Freshers only</label>
+  </div>
+
   <div class="meta" id="meta">Loading…</div>
   <div id="list"></div>
   <div class="pager">
     <button id="prev">← Prev</button>
     <button id="next">Next →</button>
   </div>
+
   <footer>
     Jobs come from public company job boards (Greenhouse, Lever, Ashby, SmartRecruiters)
     and <a href="https://www.careerjet.co.in" target="_blank" rel="noopener">Jobs by Careerjet</a>.
+    Role, city and fresher tags are added by an AI model and can be wrong.
     "Apply" opens the original posting. Student demo project.
   </footer>
 </main>
 <script>
-  const state = { q: '', page: 0, totalPages: 0 };
+  const state = { q: '', role: '', city: '', fresher: true, page: 0, totalPages: 0 };
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const day = iso => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
 
+  async function loadFilters() {
+    const f = await (await fetch('/api/filters')).json();
+    const fill = (sel, items) => items.forEach(i => sel.insertAdjacentHTML('beforeend',
+      `<option value="${esc(i.name)}">${esc(i.name)} (${i.count})</option>`));
+    fill($('role'), f.roles);
+    fill($('city'), f.cities);
+  }
+
   async function load() {
-    const res = await fetch(`/api/jobs?q=${encodeURIComponent(state.q)}&page=${state.page}&size=20`);
-    const data = await res.json();
+    const p = new URLSearchParams({ q: state.q, role: state.role, city: state.city,
+                                    fresher: state.fresher, page: state.page, size: 20 });
+    const data = await (await fetch('/api/jobs?' + p)).json();
     state.totalPages = data.totalPages;
     $('list').innerHTML = data.items.map(j => `
       <div class="job">
         <a href="${esc(j.applyUrl)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>
-        <div class="row">${esc(j.company)} · ${esc(j.location)}</div>
+        <div class="row">${esc(j.company)} · ${esc(j.city || j.location)}</div>
         <div class="row">Posted ${esc(day(j.postedAt))}</div>
-      </div>`).join('') || '<p class="meta">No jobs match.</p>';
+        <div class="chips">
+          ${j.role ? `<span class="chip">${esc(j.role)}</span>` : ''}
+          ${j.isFresher ? '<span class="chip ok">Fresher friendly</span>' : ''}
+        </div>
+      </div>`).join('') || '<p class="meta">No jobs match these filters.</p>';
     $('prev').disabled = state.page === 0;
     $('next').disabled = state.page + 1 >= state.totalPages;
     const stats = await (await fetch('/api/stats')).json();
-    $('meta').textContent = `${data.total} jobs` + (state.q ? ` matching "${state.q}"` : '') +
+    $('meta').textContent = `${data.total} jobs shown · ${stats.totalJobs} total, ${stats.fresherJobs} fresher-friendly` +
       (stats.lastUpdated ? ` · last updated ${new Date(stats.lastUpdated).toLocaleString('en-IN')}` : '');
   }
 
+  const reload = () => { state.page = 0; load(); };
   let timer;
-  $('q').addEventListener('input', e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); state.page = 0; load(); }, 300); });
+  $('q').addEventListener('input', e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); reload(); }, 300); });
+  $('role').onchange = e => { state.role = e.target.value; reload(); };
+  $('city').onchange = e => { state.city = e.target.value; reload(); };
+  $('fresher').onchange = e => { state.fresher = e.target.checked; reload(); };
   $('prev').onclick = () => { state.page--; load(); window.scrollTo(0, 0); };
   $('next').onclick = () => { state.page++; load(); window.scrollTo(0, 0); };
+  loadFilters().catch(() => {});
   load().catch(() => $('meta').textContent = 'Could not load jobs.');
 </script>
 </body>
