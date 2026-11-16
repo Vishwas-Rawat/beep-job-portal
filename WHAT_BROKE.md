@@ -43,7 +43,8 @@ Real problems hit while building, logged as they happened.
 - **Problem:** Every Careerjet call failed with HTTP 403 and no message, even with a valid key.
 - **Cause:** Three separate rules, found one at a time: (a) calls must come from an IP declared in the partner dashboard; (b) the PC has IPv6, so requests left from an undeclared IPv6 address even after the home IPv4 was declared; (c) once IPv4 was forced, the API finally said `Undeclared referrer. Please add a Referer header.`
 - **Fix:** Force IPv4 in the JVM (`java.net.preferIPv4Stack=true`), send `Referer: https://beep-jobs.onrender.com/`, declare the server IP. Also found the real page-size parameter is `pagesize` (max ~99), not `page_size` as documented. Result: 1,122 fresher/intern posts per run, 706 new after dedupe.
-- **Open issue:** Render's outbound traffic comes from two /24 ranges (512 IPs), but Careerjet allows only 8 single IPs. Checking which IP Render actually uses via `/api/admin/egress-ip`.
+- **Render's IP:** Render lists two /24 outbound ranges (512 IPs), but Careerjet allows only 8 single IPs. Added a token-protected `/api/admin/egress-ip`; 3 calls returned the same IP, so that one IP was declared. Risk: it may change after a redeploy, so re-check if Careerjet drops to 0.
+- **Then 401 "Invalid API key provided" on Render only:** the key pasted into Render's env was wrong while the local `.env` was right. The 403 → 401 change showed the IP was now accepted, so the key was the only thing left. Re-pasted it; live run then fetched 1,122 Careerjet posts (705 new, 2,358 total).
 
 ### 8. Neon project first created in the wrong region
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
