@@ -23,3 +23,23 @@ Real problems hit while building, logged as they happened.
 - **Problem:** First full run: 1,777 India jobs from 51 company boards, but only ~45 show a clear fresher signal (intern / graduate / entry level / 0–2 years).
 - **Cause:** Company career boards mostly post experienced roles; fresher hiring often goes through campus drives and job sites instead.
 - **Fix (in progress):** Adding a keyword-search source (Careerjet partner API, India) queried for "fresher", "intern", "graduate". The LLM `is_fresher` tag will give the real count instead of the keyword guess.
+
+### 5. Careerjet would not accept a GitHub profile as the "website"
+- **Problem:** Careerjet's publisher sign-up rejected `github.com/<user>` as the website address.
+- **Cause:** It wants the real site that will show the jobs.
+- **Fix:** Deployed to Render a day earlier than planned, so the live app URL can be used for the sign-up.
+
+### 6. First Render deploys failed on the database connection
+- **Problem:** Deploy 1: `UnknownHostException: HOST`. Deploys 2–4: `28P01 password authentication failed for user 'neondb_owner'`.
+- **Cause:** (a) A placeholder from the setup notes was pasted as the real host. (b) The DB password was typed by hand, but it must be the one Neon generated for the role.
+- **Fix:** Rebuilt `DB_URL`, `DB_USER`, `DB_PASSWORD` from one Neon connection string (same project, Singapore region). The error messages in the logs pointed straight at each cause.
+
+### 7. One deploy hung for 15 minutes with no logs
+- **Problem:** Startup stopped logging and Render waited on the health check until it gave up.
+- **Cause:** The Postgres JDBC driver has no socket timeout by default, so a stalled connection waits forever instead of failing.
+- **Fix:** Added `connectTimeout`, `loginTimeout`, `socketTimeout` and a Hikari `connection-timeout`. Next deploy failed in under 2 minutes with a clear error, which made #6 easy to fix.
+
+### 8. Neon project first created in the wrong region
+- **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
+- **Cause:** Didn't pick the region on project creation.
+- **Fix:** Recreated the empty project in Singapore before any data went in. Avoids ~200 ms extra per query (the first refresh does ~1,700 inserts).
