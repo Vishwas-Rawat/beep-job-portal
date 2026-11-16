@@ -64,6 +64,9 @@ public class Job {
     @Column(name = "tag_attempts", nullable = false)
     private int tagAttempts;
 
+    @Column(name = "tag_status")
+    private String tagStatus;
+
     protected Job() {
         // required by JPA
     }
@@ -121,4 +124,7 @@ public class Job {
 
     public int getTagAttempts() { return tagAttempts; }
     public void setTagAttempts(int tagAttempts) { this.tagAttempts = tagAttempts; }
+
+    public String getTagStatus() { return tagStatus; }
+    public void setTagStatus(String tagStatus) { this.tagStatus = tagStatus; }
 }

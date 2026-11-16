@@ -61,6 +61,25 @@ public class AdminController {
     }
 
     /**
+     * POST /api/admin/tag  (header X-Admin-Token)
+     * Tag untagged jobs without fetching. Used once for the existing backlog.
+     */
+    @PostMapping("/api/admin/tag")
+    public ResponseEntity<?> tag(@RequestHeader(value = TOKEN_HEADER, required = false) String token,
+                                 @RequestParam(defaultValue = "false") boolean wait) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        if (refreshService.isRunning()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "a run is already in progress"));
+        }
+        if (wait) {
+            return ResponseEntity.ok(refreshService.tagOnly());
+        }
+        executor.submit(refreshService::tagOnly);
+        return ResponseEntity.accepted().body(Map.of("status", "started"));
+    }
+
+    /**
      * GET /api/admin/egress-ip  (header X-Admin-Token)
      * Which public IPv4 this server uses for outgoing calls, to declare it in Careerjet.
      */

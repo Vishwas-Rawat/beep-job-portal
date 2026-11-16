@@ -1,5 +1,6 @@
 package com.beep.jobportal.fetch;
 
+import com.beep.jobportal.tag.TaggingProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +10,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties(SourcesProperties.class)
+@EnableConfigurationProperties({SourcesProperties.class, TaggingProperties.class})
 public class HttpConfig {
 
     /** One shared HTTP client for all fetchers, with timeouts so a slow API can't hang a run. */

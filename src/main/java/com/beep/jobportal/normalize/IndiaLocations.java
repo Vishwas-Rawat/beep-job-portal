@@ -46,6 +46,11 @@ public class IndiaLocations {
         }
     }
 
+    /** "Bengaluru", "Mumbai", ... in file order, for the LLM prompt. */
+    public List<String> canonicalCities() {
+        return aliases.stream().map(Alias::canonical).distinct().toList();
+    }
+
     public boolean isIndia(String location) {
         if (location == null || location.isBlank()) return false;
         return INDIA.matcher(location).find() || firstCity(location) != null;
