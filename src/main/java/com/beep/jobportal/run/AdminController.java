@@ -1,5 +1,6 @@
 package com.beep.jobportal.run;
 
+import com.beep.jobportal.fetch.EgressIp;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -23,15 +24,19 @@ import java.util.concurrent.Executors;
 @RestController
 public class AdminController {
 
+    private static final String TOKEN_HEADER = "X-Admin-Token";
+
     private final RefreshService refreshService;
     private final RunLogRepository runs;
+    private final EgressIp egressIp;
     private final String adminToken;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public AdminController(RefreshService refreshService, RunLogRepository runs,
+    public AdminController(RefreshService refreshService, RunLogRepository runs, EgressIp egressIp,
                            @Value("${app.admin-token:}") String adminToken) {
         this.refreshService = refreshService;
         this.runs = runs;
+        this.egressIp = egressIp;
         this.adminToken = adminToken;
     }
 
@@ -41,15 +46,10 @@ public class AdminController {
      * ?wait=true: run now and return the run_log row (handy for testing).
      */
     @PostMapping("/api/admin/refresh")
-    public ResponseEntity<?> refresh(@RequestHeader(value = "X-Admin-Token", required = false) String token,
+    public ResponseEntity<?> refresh(@RequestHeader(value = TOKEN_HEADER, required = false) String token,
                                      @RequestParam(defaultValue = "false") boolean wait) {
-        if (adminToken.isBlank()) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("error", "ADMIN_TOKEN is not configured"));
-        }
-        if (!tokenMatches(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "bad token"));
-        }
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
         if (refreshService.isRunning()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "refresh already running"));
         }
@@ -60,6 +60,17 @@ public class AdminController {
         return ResponseEntity.accepted().body(Map.of("status", "started"));
     }
 
+    /**
+     * GET /api/admin/egress-ip  (header X-Admin-Token)
+     * Which public IPv4 this server uses for outgoing calls, to declare it in Careerjet.
+     */
+    @GetMapping("/api/admin/egress-ip")
+    public ResponseEntity<?> egressIp(@RequestHeader(value = TOKEN_HEADER, required = false) String token) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        return ResponseEntity.ok(Map.of("ip", egressIp.current()));
+    }
+
     /** Public: latest run (any status), for "last updated" and checking a background run. */
     @GetMapping("/api/runs/latest")
     public ResponseEntity<RunLog> latestRun() {
@@ -68,11 +79,16 @@ public class AdminController {
                 .orElse(ResponseEntity.noContent().build());
     }
 
-    /** Constant-time compare so the token can't be guessed from response timing. */
-    private boolean tokenMatches(String given) {
-        if (given == null) return false;
-        return MessageDigest.isEqual(given.getBytes(StandardCharsets.UTF_8),
-                adminToken.getBytes(StandardCharsets.UTF_8));
+    /** null = allowed; otherwise the error response to return. */
+    private ResponseEntity<?> checkToken(String given) {
+        if (adminToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "ADMIN_TOKEN is not configured"));
+        }
+        // Constant-time compare so the token can't be guessed from response timing
+        boolean ok = given != null && MessageDigest.isEqual(
+                given.getBytes(StandardCharsets.UTF_8), adminToken.getBytes(StandardCharsets.UTF_8));
+        return ok ? null : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "bad token"));
     }
 
     @PreDestroy

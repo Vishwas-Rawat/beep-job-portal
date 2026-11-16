@@ -49,8 +49,12 @@ public class SmartRecruitersFetcher extends CompanyBoardFetcher {
 
     private RawJob toRawJob(Company company, JsonNode j) {
         JsonNode loc = j.path("location");
-        // fullLocation comes like "Chennai, //////////TN, India"
-        String location = loc.path("fullLocation").asText("India").replaceAll("/+", "").strip();
+        // fullLocation comes like "Chennai, //////////TN, India" or "bangalore, , India"
+        String location = loc.path("fullLocation").asText("India")
+                .replaceAll("/+", "")
+                .replaceAll("(\\s*,\\s*)+", ", ")     // collapse empty parts: ", , " -> ", "
+                .replaceAll("^, |, $", "")
+                .strip();
         if (loc.path("remote").asBoolean(false)) location += " (Remote)";
 
         String description = String.format("Experience level: %s. Function: %s. Employment type: %s. Industry: %s.",

@@ -61,6 +61,24 @@ sources:
       - { slug: composio,    name: Composio }
       - { slug: atlan,       name: Atlan }
 
+  # Keyword search across Indian job sites (partner API, free key).
+  # Careerjet only answers requests that come from a declared IPv4 address
+  # AND carry a Referer header with the registered website.
+  careerjet:        # https://www.careerjet.com/partners/api/
+    enabled: true
+    api-key: ${CAREERJET_API_KEY:}      # empty = source skipped
+    referer: https://beep-jobs.onrender.com/
+    locale: en_IN
+    page-size: 99                        # the real param is "pagesize" (max ~99), not page_size
+    pages-per-keyword: 2
+    keywords:
+      - fresher
+      - internship
+      - intern
+      - trainee
+      - graduate trainee
+      - 0-1 years
+
   smartrecruiters:  # https://developers.smartrecruiters.com/docs/posting-api
     enabled: true
     companies:

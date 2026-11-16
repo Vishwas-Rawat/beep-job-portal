@@ -39,6 +39,12 @@ Real problems hit while building, logged as they happened.
 - **Cause:** The Postgres JDBC driver has no socket timeout by default, so a stalled connection waits forever instead of failing.
 - **Fix:** Added `connectTimeout`, `loginTimeout`, `socketTimeout` and a Hikari `connection-timeout`. Next deploy failed in under 2 minutes with a clear error, which made #6 easy to fix.
 
+### 9. Careerjet API answered 403 with an empty body
+- **Problem:** Every Careerjet call failed with HTTP 403 and no message, even with a valid key.
+- **Cause:** Three separate rules, found one at a time: (a) calls must come from an IP declared in the partner dashboard; (b) the PC has IPv6, so requests left from an undeclared IPv6 address even after the home IPv4 was declared; (c) once IPv4 was forced, the API finally said `Undeclared referrer. Please add a Referer header.`
+- **Fix:** Force IPv4 in the JVM (`java.net.preferIPv4Stack=true`), send `Referer: https://beep-jobs.onrender.com/`, declare the server IP. Also found the real page-size parameter is `pagesize` (max ~99), not `page_size` as documented. Result: 1,122 fresher/intern posts per run, 706 new after dedupe.
+- **Open issue:** Render's outbound traffic comes from two /24 ranges (512 IPs), but Careerjet allows only 8 single IPs. Checking which IP Render actually uses via `/api/admin/egress-ip`.
+
 ### 8. Neon project first created in the wrong region
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
 - **Cause:** Didn't pick the region on project creation.

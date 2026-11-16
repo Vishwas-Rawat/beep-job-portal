@@ -13,10 +13,15 @@ public record SourcesProperties(
         Board greenhouse,
         Board lever,
         Board ashby,
-        Board smartrecruiters
+        Board smartrecruiters,
+        Careerjet careerjet
 ) {
     public record Board(boolean enabled, List<Company> companies) {}
 
     /** slug = the company's id in the ATS URL; name = what we show on the page. */
     public record Company(String slug, String name) {}
+
+    /** Keyword-search source: one query per keyword, a few pages each. */
+    public record Careerjet(boolean enabled, String apiKey, String referer, String locale,
+                            int pageSize, int pagesPerKeyword, List<String> keywords) {}
 }

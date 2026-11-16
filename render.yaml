@@ -15,5 +15,7 @@ services:
         sync: false
       - key: ADMIN_TOKEN       # Render generates a random secret
         generateValue: true
+      - key: CAREERJET_API_KEY # partner key; works only from IPs declared in Careerjet
+        sync: false
       # LLM_API_KEY / LLM_BASE_URL / LLM_MODEL are added with the tagger step.
       # Not listed yet: an empty value would override the defaults and break startup.
