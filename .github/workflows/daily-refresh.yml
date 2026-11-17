@@ -1,0 +1,44 @@
+name: daily refresh
+
+on:
+  schedule:
+    - cron: "30 0 * * *"   # every day 00:30 UTC = 06:00 IST
+  workflow_dispatch:         # "Run workflow" button for manual runs
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APP_URL: https://beep-jobs.onrender.com
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+
+    steps:
+      # Render's free tier sleeps when idle, so wake it first (cold start can take ~1 min)
+      - name: Wake up the app
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS --max-time 90 "$APP_URL/actuator/health"; then echo; exit 0; fi
+            echo "app not up yet, retrying..."; sleep 15
+          done
+          echo "app did not wake up"; exit 1
+
+      - name: Start refresh
+        run: |
+          code=$(curl -s -o resp.json -w "%{http_code}" --max-time 90 \
+                 -X POST -H "X-Admin-Token: $ADMIN_TOKEN" "$APP_URL/api/admin/refresh")
+          cat resp.json; echo
+          if [ "$code" != "202" ]; then echo "refresh not started: HTTP $code"; exit 1; fi
+
+      # Polling every minute also keeps the app awake until the run is done
+      - name: Wait for the run to finish
+        run: |
+          sleep 30
+          for i in $(seq 1 55); do
+            status=$(curl -s --max-time 60 "$APP_URL/api/runs/latest" | jq -r .status)
+            echo "$(date -u +%H:%M) status=$status"
+            if [ "$status" != "RUNNING" ]; then break; fi
+            sleep 60
+          done
+          curl -s "$APP_URL/api/runs/latest" | jq '{status, fetched, newJobs, duplicates, sourceCounts, tagged, tagFailed, inputTokens, outputTokens, costUsd, error}'
+          [ "$status" = "SUCCESS" ]
