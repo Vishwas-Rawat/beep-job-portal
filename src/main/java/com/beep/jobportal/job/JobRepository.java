@@ -45,6 +45,14 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     long countByIsFresherTrue();
 
+    /**
+     * Random but repeatable sample for the accuracy check: the same seed always gives the same jobs,
+     * so the prompt v1 vs v2 comparison runs on exactly the same 50 posts.
+     */
+    @Query(value = "SELECT * FROM jobs WHERE role_tag IS NOT NULL ORDER BY md5(id::text || :seed) LIMIT :size",
+           nativeQuery = true)
+    List<Job> randomSample(@Param("seed") String seed, @Param("size") int size);
+
     /** Jobs the LLM has not tagged yet and has not given up on, oldest first. */
     List<Job> findByRoleTagIsNullAndTagAttemptsLessThanOrderByIdAsc(int maxAttempts, Pageable pageable);
 

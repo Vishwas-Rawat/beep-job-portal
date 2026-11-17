@@ -1,6 +1,7 @@
 package com.beep.jobportal.run;
 
 import com.beep.jobportal.fetch.EgressIp;
+import com.beep.jobportal.job.JobRepository;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,14 +31,16 @@ public class AdminController {
 
     private final RefreshService refreshService;
     private final RunLogRepository runs;
+    private final JobRepository jobs;
     private final EgressIp egressIp;
     private final String adminToken;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public AdminController(RefreshService refreshService, RunLogRepository runs, EgressIp egressIp,
-                           @Value("${app.admin-token:}") String adminToken) {
+    public AdminController(RefreshService refreshService, RunLogRepository runs, JobRepository jobs,
+                           EgressIp egressIp, @Value("${app.admin-token:}") String adminToken) {
         this.refreshService = refreshService;
         this.runs = runs;
+        this.jobs = jobs;
         this.egressIp = egressIp;
         this.adminToken = adminToken;
     }
@@ -77,6 +82,57 @@ public class AdminController {
         }
         executor.submit(refreshService::tagOnly);
         return ResponseEntity.accepted().body(Map.of("status", "started"));
+    }
+
+    /**
+     * GET /api/admin/sample?size=50&seed=beep  (header X-Admin-Token)
+     * Random jobs for hand-labeling. AI tags are left out on purpose, so the human label is not biased.
+     */
+    @GetMapping("/api/admin/sample")
+    public ResponseEntity<?> sample(@RequestHeader(value = TOKEN_HEADER, required = false) String token,
+                                    @RequestParam(defaultValue = "50") int size,
+                                    @RequestParam(defaultValue = "beep") String seed) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        List<Map<String, Object>> rows = jobs.randomSample(seed, Math.min(Math.max(size, 1), 200)).stream()
+                .map(j -> Map.<String, Object>of(
+                        "id", j.getId(),
+                        "source", j.getSource(),
+                        "title", j.getTitle(),
+                        "company", j.getCompany(),
+                        "location", String.valueOf(j.getLocationRaw()),
+                        "description", shorten(j.getDescription(), 800),
+                        "applyUrl", String.valueOf(j.getApplyUrl())))
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
+    /**
+     * GET /api/admin/tags?ids=1,2,3  (header X-Admin-Token)
+     * The AI's tags for given jobs, to compare against the hand labels.
+     */
+    @GetMapping("/api/admin/tags")
+    public ResponseEntity<?> tags(@RequestHeader(value = TOKEN_HEADER, required = false) String token,
+                                  @RequestParam List<Long> ids) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        List<Map<String, Object>> rows = jobs.findAllById(ids).stream()
+                .map(j -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", j.getId());
+                    m.put("role", j.getRoleTag());
+                    m.put("city", j.getCityTag());
+                    m.put("isFresher", j.getIsFresher());
+                    m.put("tagStatus", j.getTagStatus());
+                    return m;
+                })
+                .toList();
+        return ResponseEntity.ok(rows);
+    }
+
+    private static String shorten(String s, int max) {
+        if (s == null) return "";
+        return s.length() > max ? s.substring(0, max) + "…" : s;
     }
 
     /**
