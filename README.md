@@ -9,6 +9,7 @@ A small job portal for Indian college students and freshers. Every day it collec
 | Jobs collected | 2,800+ from 5 sources (63 company job boards + Careerjet) |
 | Fresher-friendly (AI tag) | ~870 |
 | Refresh | Daily at 06:00 IST via GitHub Actions |
+| Special feature | **Ask AI**: search in plain English; the AI sets filters, never invents jobs |
 | Tagging accuracy (50 posts hand-checked) | role 76% · city 98% · fresher 96% |
 | LLM cost | ≈ $0.16 per 1,000 posts at paid rates (runs on the free tier) |
 | Hosting cost | ₹0 (Render, Neon, GitHub Actions free tiers) |
@@ -86,12 +87,23 @@ Prices from Google's pricing page (checked 16 Nov 2026). Token counts are the re
 
 Render's free web service sleeps when idle, so an in-app `@Scheduled` job would not fire. Instead [`.github/workflows/daily-refresh.yml`](.github/workflows/daily-refresh.yml) runs at 06:00 IST: wakes the app, calls `POST /api/admin/refresh` with a secret token, then polls `/api/runs/latest` every minute until the run finishes (which also keeps the app awake). Can also be started from the Actions tab.
 
+## Ask AI search
+
+Type what you want in your own words, e.g. *"data analyst internship in Bangalore"*. Gemini turns the sentence into filters (keywords, role, city, freshers) and fills in the normal search controls, so you can see what it understood. The jobs come from the normal search, so the AI can't make up a job.
+
+- **The AI only sets filters.** The prompt ([`ask-system.txt`](src/main/resources/prompts/ask-system.txt)) asks for one JSON object. Java keeps only roles from the fixed list and known city names ([`AskService`](src/main/java/com/beep/jobportal/ask/AskService.java)).
+- **Java writes the reply**, e.g. "Found 4 fresher Data Analyst jobs in Bengaluru."
+- **When nothing matches**, it suggests close searches that do have jobs ("All cities", "Without 'kotlin'"). For places outside India it says the portal only lists jobs in India.
+- **Off-topic or prompt-injection text** ("hello", "ignore all instructions…") gets "I can only help you find jobs."
+- **If Gemini is slow or busy** (over 12 s, or a 503), simple word-matching rules answer instead, and the page says so.
+- **Limits:** 6 asks a minute per IP and 20 AI calls a minute overall, so the free Gemini quota stays available for the daily tagging run.
+
 ## Web page and security
 
 - **Page:** one plain HTML/JS file served by Spring Boot. Search, role and city filters, a "Freshers only" switch, page numbers, an Apply button on every job, a loading state, and a clear message when a request fails. Works on phones and follows the system light/dark theme.
-- **Rate limit:** per IP, 60 requests a minute on `/api/*` and 10 a minute on `/api/admin/*`; over the limit the API answers `429` with `Retry-After` ([`RateLimitFilter`](src/main/java/com/beep/jobportal/web/RateLimitFilter.java)). In memory, which is fine for one Render instance.
+- **Rate limit:** per IP, 60 requests a minute on `/api/*`, 10 a minute on `/api/admin/*` and 6 a minute on `/api/ask`; over the limit the API answers `429` with `Retry-After` ([`RateLimitFilter`](src/main/java/com/beep/jobportal/web/RateLimitFilter.java)). In memory, which is fine for one Render instance.
 - **Security headers** on every response: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` that only allows the site's own content ([`SecurityHeadersFilter`](src/main/java/com/beep/jobportal/web/SecurityHeadersFilter.java)).
-- **Testing:** unit tests for search, title rule, city list, rate limit and headers (`mvn test`), plus an 89-case manual test sheet run against the live site.
+- **Testing:** unit tests for search, title rule, city list, Ask AI (with a faked Gemini and database), rate limit and headers (`mvn test`), plus an 89-case manual test sheet run against the live site.
 
 ## Tech stack
 
@@ -130,6 +142,7 @@ curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" "http://localhost:8080/api/admin/r
 | `GET /api/jobs?q=&role=&city=&fresher=&page=` | public | Search |
 | `GET /api/filters` | public | Roles and cities with counts |
 | `GET /api/stats` | public | Totals and last update time |
+| `GET /api/ask?q=` | public (6/min per IP) | Ask AI: sentence → filters + reply |
 | `GET /api/runs/latest` | public | Latest run summary |
 | `POST /api/admin/refresh` | token | Fetch + dedupe + tag |
 | `POST /api/admin/tag` | token | Tag untagged jobs only |
@@ -160,4 +173,5 @@ src/main/resources/
 - The rate limit reads the client IP from the first `X-Forwarded-For` entry (Render is behind a proxy). A client can fake that header to get around the limit; it cannot use it to reach anything else.
 - Careerjet only accepts requests from declared IPs; if Render's outgoing IP changes, it has to be re-declared (`GET /api/admin/egress-ip` shows it).
 - Role list could add Data Engineering and IT Support; re-measure on a fresh sample of 50.
+- Search matches whole words loosely ("intern" also matches "international"), so Ask AI drops "intern" and uses the fresher filter instead.
 - Problems hit while building and how they were fixed: [WHAT_BROKE.md](WHAT_BROKE.md).
