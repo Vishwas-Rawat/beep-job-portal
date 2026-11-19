@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -27,9 +26,6 @@ import java.util.stream.Collectors;
 public class TaggingService {
 
     private static final Logger log = LoggerFactory.getLogger(TaggingService.class);
-    private static final Pattern FRESHER_TITLE = Pattern.compile(
-            "\\b(intern|internship|trainee|fresher|freshers|graduate|apprentice|entry[ -]level|junior)\\b",
-            Pattern.CASE_INSENSITIVE);
 
     /** Totals for run_log. */
     public record TagStats(int tagged, int invalidRole, int fallback, int failedCalls,
@@ -48,6 +44,21 @@ public class TaggingService {
         this.india = india;
         this.rolesByKey = props.roles().stream()
                 .collect(Collectors.toMap(TaggingService::key, Function.identity()));
+    }
+
+    /** Clear the tags of these jobs and tag them again (used to re-check a prompt change on the same sample). */
+    public TagStats retag(List<Long> ids) {
+        List<Job> list = jobs.findAllById(ids);
+        for (Job j : list) {
+            j.setRoleTag(null);
+            j.setCityTag(null);
+            j.setIsFresher(null);
+            j.setTagStatus(null);
+            j.setTaggedAt(null);
+            j.setTagAttempts(0);
+        }
+        jobs.saveAll(list);
+        return tagPending();
     }
 
     public TagStats tagPending() {
@@ -105,7 +116,10 @@ public class TaggingService {
             }
             job.setRoleTag(role);
             job.setCityTag(normalizeCity(t.city(), job));
-            job.setIsFresher(t.isFresher() != null ? t.isFresher() : ruleFresher(job));
+            // The title overrides the model when it clearly says junior or senior
+            Boolean fromTitle = TitleSignals.fresherFromTitle(job.getTitle());
+            Boolean fresher = fromTitle != null ? fromTitle : t.isFresher();
+            job.setIsFresher(fresher != null ? fresher : ruleFresher(job));
             job.setTagStatus("llm");
             job.setTaggedAt(Instant.now());
             tagged++;
@@ -142,7 +156,7 @@ public class TaggingService {
     }
 
     private boolean ruleFresher(Job job) {
-        return FRESHER_TITLE.matcher(job.getTitle()).find();
+        return TitleSignals.isJunior(job.getTitle());
     }
 
     private static String key(String s) {
