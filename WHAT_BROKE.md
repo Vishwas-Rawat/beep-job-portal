@@ -1,89 +1,61 @@
-# What broke (problem → cause → fix)
+# What broke and how I fixed it
 
-Real problems hit while building, logged as they happened.
+These are the main problems I ran into while building this, and what I did about each one.
 
-## Day 1 — Mon 16 Nov 2026
+## 1. The AI was calling senior jobs "fresher"
 
-### 1. Maven would not run
-- **Problem:** `mvn` failed with "JAVA_HOME environment variable is not defined correctly".
-- **Cause:** `JAVA_HOME` pointed to a JDK 21 folder that no longer existed. Only JDK 17 was installed.
-- **Fix:** Targeted Java 17 (Spring Boot 3.5 and Spring AI 1.1 both support it) and pointed `JAVA_HOME` at the installed JDK 17.
+**What happened:** I picked 50 random jobs and labelled them myself. When I compared them with the AI's tags, the fresher tag was right only 84% of the time. Most of the mistakes were clearly senior jobs, like "Senior Full Stack Developer", marked as fresher.
 
-### 2. App could not connect to the local database
-- **Problem:** Startup failed: `FATAL: password authentication failed for user "jobportal"`.
-- **Cause:** A Windows PostgreSQL 17 service was already listening on port 5432, so the app connected to that server instead of the Docker container.
-- **Fix:** Mapped the Docker Postgres to host port 5433 and changed the default `DB_URL`. Found it by checking which process owned port 5432.
+**Why:** In every wrong case, the AI never saw how much experience the job needed. I was cutting each description at 800 characters, and the "3+ years" line was usually after that. One source also had its own "experience level" field that was often wrong. For example, it marked "Senior Full Stack Developer" as "Associate".
 
-### 3. Planned main source (Adzuna) turned out to be paid
-- **Problem:** After sign-up, Adzuna gave only 25 test calls; full access needs £8/month with a card.
-- **Cause:** Assumed the API was free without checking its current plans.
-- **Fix:** Kept the build at ₹0: switched to official public ATS job-board APIs (Greenhouse, Lever, Ashby, SmartRecruiters) that need no key. Every source sits behind one `JobFetcher` interface, so swapping sources did not touch the rest of the pipeline.
+**How I fixed it:**
+- I added a simple rule in Java: if the job title says "Senior", "Lead", "Intern", "Trainee" and so on, the title wins over the AI. This rule has unit tests.
+- I told the AI in the prompt to trust the title more than those fields.
+- I now send 2,000 characters instead of 800.
 
-### 4. Free ATS sources have plenty of India jobs but few fresher jobs
-- **Problem:** First full run: 1,777 India jobs from 51 company boards, but only ~45 show a clear fresher signal (intern / graduate / entry level / 0–2 years).
-- **Cause:** Company career boards mostly post experienced roles; fresher hiring often goes through campus drives and job sites instead.
-- **Fix (in progress):** Adding a keyword-search source (Careerjet partner API, India) queried for "fresher", "intern", "graduate". The LLM `is_fresher` tag will give the real count instead of the keyword guess.
+**Result:** fresher accuracy went from 84% to 96%. One change I tried along the way made the role tags worse, so I removed it.
 
-### 5. Careerjet would not accept a GitHub profile as the "website"
-- **Problem:** Careerjet's publisher sign-up rejected `github.com/<user>` as the website address.
-- **Cause:** It wants the real site that will show the jobs.
-- **Fix:** Deployed to Render a day earlier than planned, so the live app URL can be used for the sign-up.
+| Version | Role | City | Fresher | All three right |
+|---|---|---|---|---|
+| v1 | 76% | 98% | 84% | 64% |
+| v2 | 70% | 98% | 96% | 62% |
+| **v3 (live)** | **76%** | **98%** | **96%** | **70%** |
 
-### 6. First Render deploys failed on the database connection
-- **Problem:** Deploy 1: `UnknownHostException: HOST`. Deploys 2–4: `28P01 password authentication failed for user 'neondb_owner'`.
-- **Cause:** (a) A placeholder from the setup notes was pasted as the real host. (b) The DB password was typed by hand, but it must be the one Neon generated for the role.
-- **Fix:** Rebuilt `DB_URL`, `DB_USER`, `DB_PASSWORD` from one Neon connection string (same project, Singapore region). The error messages in the logs pointed straight at each cause.
+One honest note: I improved the prompt and tested it on the same 50 jobs, so the real numbers may be a little lower.
 
-### 7. One deploy hung for 15 minutes with no logs
-- **Problem:** Startup stopped logging and Render waited on the health check until it gave up.
-- **Cause:** The Postgres JDBC driver has no socket timeout by default, so a stalled connection waits forever instead of failing.
-- **Fix:** Added `connectTimeout`, `loginTimeout`, `socketTimeout` and a Hikari `connection-timeout`. Next deploy failed in under 2 minutes with a clear error, which made #6 easy to fix.
+## 2. Careerjet kept saying "403" with no reason
 
-### 9. Careerjet API answered 403 with an empty body
-- **Problem:** Every Careerjet call failed with HTTP 403 and no message, even with a valid key.
-- **Cause:** Three separate rules, found one at a time: (a) calls must come from an IP declared in the partner dashboard; (b) the PC has IPv6, so requests left from an undeclared IPv6 address even after the home IPv4 was declared; (c) once IPv4 was forced, the API finally said `Undeclared referrer. Please add a Referer header.`
-- **Fix:** Force IPv4 in the JVM (`java.net.preferIPv4Stack=true`), send `Referer: https://beep-jobs.onrender.com/`, declare the server IP. Also found the real page-size parameter is `pagesize` (max ~99), not `page_size` as documented. Result: 1,122 fresher/intern posts per run, 706 new after dedupe.
-- **Render's IP:** Render lists two /24 outbound ranges (512 IPs), but Careerjet allows only 8 single IPs. Added a token-protected `/api/admin/egress-ip`; 3 calls returned the same IP, so that one IP was declared. Risk: it may change after a redeploy, so re-check if Careerjet drops to 0.
-- **Then 401 "Invalid API key provided" on Render only:** the key pasted into Render's env was wrong while the local `.env` was right. The 403 → 401 change showed the IP was now accepted, so the key was the only thing left. Re-pasted it; live run then fetched 1,122 Careerjet posts (705 new, 2,358 total).
+**What happened:** Every call to the Careerjet API failed with 403 (forbidden), even though my API key was correct. The error had no message, so I had no idea why.
 
-### 10. Planned LLM model was closed to new users
-- **Problem:** First Gemini call returned 404: `gemini-2.5-flash is no longer available to new users`.
-- **Cause:** Model lineup changed; older plans/tutorials still name 2.5.
-- **Fix:** Listed models with the key, tested a few, chose `gemini-3.5-flash-lite` (cheapest current one). Model is a config value, so nothing in code changed.
+**Why:** Careerjet had three hidden rules, and I found them one by one:
+1. Calls must come from an IP address you register with them.
+2. My PC has IPv6, so my requests went out from an address I hadn't registered.
+3. They also need a `Referer` header with your website address.
 
-### 11. Spring AI called the wrong URL for Gemini
-- **Problem:** Gemini's OpenAI-compatible endpoint is `.../v1beta/openai/chat/completions`, but Spring AI appends `/v1/chat/completions` to the base URL.
-- **Fix:** Set `spring.ai.openai.chat.completions-path=/chat/completions` (env `LLM_COMPLETIONS_PATH`).
+**How I fixed it:** I made Java use IPv4 only. After that, Careerjet finally showed a real error message, which pointed me to the missing `Referer` header. I added that and registered the server's IP.
 
-### 12. Gemini returned 503 (overloaded) during the full tagging run
-- **Problem:** Several `HTTP 503` errors while tagging 2,315 posts.
-- **Cause:** Provider-side overload; free tier also has unpublished rate limits.
-- **Fix:** Spring AI retry with exponential backoff on 429/503 (5 attempts, 5s → 60s). All retries succeeded: 0 failed batches, 0 fallbacks, 1 invalid role out of 2,315.
+**Result:** Careerjet now gives about 1,100 fresher and intern jobs per run. It's my biggest source of fresher jobs.
 
-### 13. Hand check showed the AI calling senior jobs "fresher"
-- **Problem:** 50 random posts labelled by hand: fresher accuracy only 84%. 6 of 8 misses were senior titles ("Senior Full Stack Developer", "Senior Account Executive") tagged as fresher.
-- **Cause:** In all 8 misses the text the model saw had no experience info: long posts were cut at 800 chars before the "X years" line, and SmartRecruiters posts only carry an "Experience level" field that is often wrong ("Senior Full Stack Developer" marked "Associate", "Junior Service Desk Analyst" marked "Mid-Senior").
-- **Fix:** (a) Java rule: a junior or senior word in the title overrides the model, with unit tests; (b) prompt says the title beats job-board fields and "no info = not fresher"; (c) send 2,000 chars instead of 800.
-- **Measured on the same 50:** v1 role 76% / city 98% / fresher 84%. v2 (also added role definitions) fresher 96% but role fell to 70%, because the definitions disagreed with my labels on fuzzy roles (collections, architects). v3 = v2 without role definitions: role 76% / city 98% / fresher 96%; all three right 64% → 70%. Kept v3. Caveat: tuned and tested on the same 50, so the gain may be a bit optimistic.
+## 3. Testing the live site found real gaps
 
-### 14. Searching "java python" found nothing
-- **Problem:** Testing the site myself, a two-word search returned 0 jobs.
-- **Cause:** Search matched the whole text as one phrase, and only in title/company/location. Skills are usually in the description.
-- **Fix:** Split into words, match any word (case-insensitive regex, special characters like `c++` escaped) across title, company, location and description; title matches are shown first. "java python" now finds 439 jobs. Unit-tested.
+**What happened:** I tested the live site against an 89-case test sheet and found:
+- If a request failed (no internet, or Render's firewall blocking a search like `' OR 1=1 --`), the page kept showing old results with no message.
+- The city dropdown had entries that aren't cities: "Unknown", "India", "Karnataka".
+- There was no rate limiting and no security headers.
 
-### 8. Neon project first created in the wrong region
-- **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
-- **Cause:** Didn't pick the region on project creation.
-- **Fix:** Recreated the empty project in Singapore before any data went in. Avoids ~200 ms extra per query (the first refresh does ~1,700 inserts).
+**How I fixed it:**
+- The page now shows a clear message like "Could not load jobs. Check your connection."
+- The city list only shows real cities.
+- Rate limiting: each IP can make 60 requests a minute, and 10 a minute on admin endpoints.
+- Security headers, including `Content-Security-Policy`, so other sites can't frame the page and it can't load outside scripts.
 
-## Day 4 — Thu 19 Nov 2026
+**Result:** 77 of the 89 test cases now pass. The rest are known data issues or things that need checking by hand, like other browsers.
 
-### 15. Page went silent when a request failed
-- **Problem:** Running an 89-case test sheet on the live site: with the network off, or searching `' OR 1=1 --` (Render's firewall answers that with a 403 HTML page), the page kept showing the old results with no message.
-- **Cause:** Only the first page load had error handling, and the code read every response as JSON without checking the status.
-- **Fix:** Check the status on every request and show "Could not load jobs…" (or "Too many requests…" for 429). Older responses that arrive after a newer search are ignored, so fast filter changes can't show stale results.
+## 4. Problems while building "Ask AI" search
 
-### 16. City filter listed "Unknown", "India" and "Karnataka"
-- **Problem:** Same test sheet: the city dropdown had entries that are not cities.
-- **Cause:** When no city is found the tag falls back to "Unknown"/"India", and some posts only name a state.
-- **Fix:** The dropdown skips these names (unit-tested). Those jobs still show under "All cities".
+Ask AI lets you type something like "data analyst internship in Bangalore". The AI only turns your sentence into filters (role, city, keywords, fresher), and the normal search finds the jobs, so the AI can never make up a job. I tested it with 12 real questions and hit four problems:
+
+- **The app wouldn't start.** My new class had two constructors, and Spring didn't know which one to use. I marked the right one with `@Autowired`. Running it locally first caught this before it went live.
+- **The AI searched for the wrong words.** For "I am a 2025 BCA graduate looking for HR jobs", it searched for "2025 bca graduate". I updated the prompt so it ignores the user's own background and only keeps useful search words.
+- **"intern" matched "International".** Searching for "intern" also found jobs at "RSM International". I stopped using "intern" as a search word, since the fresher filter already covers internships. That search went from 6 mixed results to 14 correct ones.
+- **Some answers took about 6 seconds.** Gemini was sometimes too busy (error 503), and the app waits 5 seconds before trying again. Normally it answers in about 1 second. Now, if the AI takes more than 12 seconds, simple word-matching takes over instead. I also limited AI questions to 6 a minute per person, so the free Gemini quota is never used up before the daily job refresh.
