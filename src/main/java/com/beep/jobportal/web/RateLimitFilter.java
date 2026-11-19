@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
 
 /**
- * Per-IP fixed-window rate limit: 60 req/min on /api/*, 10 req/min on /api/admin/*.
+ * Per-IP fixed-window rate limit: 60 req/min on /api/*, 10 req/min on /api/admin/*, 6 req/min on /api/ask.
  * In-memory, fine for a single Render instance.
  */
 @Component
@@ -25,6 +25,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     static final int API_LIMIT = 60;
     static final int ADMIN_LIMIT = 10;
+    static final int ASK_LIMIT = 6;   // each "Ask AI" call uses the shared Gemini quota
     private static final long WINDOW_MS = 60_000;
 
     private final LongSupplier clock;
@@ -48,8 +49,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        boolean admin = request.getRequestURI().startsWith("/api/admin/");
-        int limit = admin ? ADMIN_LIMIT : API_LIMIT;
+        String uri = request.getRequestURI();
+        String bucket = uri.startsWith("/api/admin/") ? "admin" : uri.equals("/api/ask") ? "ask" : "api";
+        int limit = switch (bucket) {
+            case "admin" -> ADMIN_LIMIT;
+            case "ask" -> ASK_LIMIT;
+            default -> API_LIMIT;
+        };
         long now = clock.getAsLong();
         long start = now - (now % WINDOW_MS);
 
@@ -57,7 +63,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             windows.values().removeIf(w -> w.start() < start);
         }
 
-        String key = (admin ? "admin:" : "api:") + clientIp(request);
+        String key = bucket + ":" + clientIp(request);
         Window w = windows.compute(key, (k, old) ->
                 old == null || old.start() != start ? new Window(start, new AtomicInteger()) : old);
 

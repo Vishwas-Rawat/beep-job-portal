@@ -41,6 +41,13 @@ class WebFiltersTest {
     }
 
     @Test
+    void askAllows6PerMinute() throws Exception {
+        for (int i = 0; i < 6; i++) assertEquals(200, call("/api/ask", "5.5.5.5"));
+        assertEquals(429, call("/api/ask", "5.5.5.5"));
+        assertEquals(200, call("/api/jobs", "5.5.5.5"));   // normal search still works
+    }
+
+    @Test
     void blockedResponseHasRetryAfter() throws Exception {
         for (int i = 0; i < 10; i++) call("/api/admin/runs", "4.4.4.4");
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/admin/runs");

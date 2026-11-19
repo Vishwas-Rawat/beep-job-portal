@@ -87,7 +87,7 @@ public class JobController {
      * "java python" -> "java|python": a job matches if it mentions ANY of the words.
      * Each word is quoted so characters like "c++" or ".net" are matched literally.
      */
-    static String toPattern(String q) {
+    public static String toPattern(String q) {
         return Arrays.stream(q.toLowerCase(Locale.ROOT).split("[\\s,]+"))
                 .map(String::strip)
                 .filter(w -> !w.isEmpty())

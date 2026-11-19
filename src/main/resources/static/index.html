@@ -48,6 +48,30 @@
     .stat { background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--muted); }
     .stat b { color:var(--text); font-weight:600; }
 
+    /* Ask AI */
+    .ask { margin-top:20px; padding:16px; border-radius:14px; border:1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+           background:linear-gradient(135deg, var(--accent-soft), var(--surface) 70%); box-shadow:var(--shadow); }
+    .ask-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
+    .ask-badge { font-weight:700; font-size:14px; color:var(--accent-text); background:var(--surface); border:1px solid var(--line);
+                 border-radius:999px; padding:3px 10px; }
+    .ask-hint { color:var(--muted); font-size:13px; }
+    .ask-row { display:flex; gap:10px; }
+    .ask-row input { flex:1; min-width:0; height:46px; padding:0 14px; font:inherit; border:1px solid var(--line); border-radius:10px;
+                     background:var(--surface); color:var(--text); }
+    .ask-row input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+    .ask-row button { height:46px; padding:0 22px; border:0; border-radius:10px; background:var(--accent); color:#fff;
+                      font:inherit; font-weight:600; cursor:pointer; }
+    .ask-row button:hover:not(:disabled) { background:var(--accent-hover); }
+    .ask-row button:disabled { opacity:.6; cursor:default; }
+    .ask-examples { margin-top:10px; font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+    .ex, .sugg { font:inherit; font-size:13px; border:1px solid var(--line); background:var(--surface); color:var(--text);
+                 border-radius:999px; padding:3px 10px; cursor:pointer; }
+    .ex:hover, .sugg:hover { border-color:var(--accent); color:var(--accent); }
+    .ask-reply { margin-top:12px; padding:10px 12px; border-radius:10px; background:var(--surface); border:1px solid var(--line); font-size:14px; }
+    .ask-reply .note { color:var(--faint); font-size:12px; margin-top:4px; }
+    .ask-reply .suggs { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    @media (max-width: 480px) { .ask-row { flex-direction:column; } .ask-row button { width:100%; } }
+
     /* Filters */
     .panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:20px; box-shadow:var(--shadow); }
     .search { position:relative; }
@@ -133,6 +157,25 @@
     <p class="sub">Internships and entry-level roles from company career pages, refreshed daily and tagged by role and city.</p>
     <div class="stats" id="stats" aria-live="polite"></div>
   </section>
+
+  <form class="ask" id="askForm" autocomplete="off">
+    <div class="ask-head">
+      <span class="ask-badge">✨ Ask AI</span>
+      <span class="ask-hint">Describe the job in your own words. The AI sets the filters below; every result is a real job from the list.</span>
+    </div>
+    <div class="ask-row">
+      <input id="askInput" type="text" maxlength="200" aria-label="Ask AI"
+             placeholder="e.g. data analyst internship in Bangalore, or python jobs I can do from home">
+      <button id="askBtn" type="submit">Ask</button>
+    </div>
+    <div class="ask-examples" id="askExamples">
+      Try:
+      <button type="button" class="ex">fresher java jobs in Pune</button>
+      <button type="button" class="ex">data analyst internship in Bangalore</button>
+      <button type="button" class="ex">work from home customer support</button>
+    </div>
+    <div class="ask-reply" id="askReply" hidden aria-live="polite"></div>
+  </form>
 
   <div class="panel panel-row" role="search">
     <div class="search">
@@ -285,6 +328,53 @@
   };
   $('prev').onclick = () => { state.page--; load(); window.scrollTo(0, 0); };
   $('next').onclick = () => { state.page++; load(); window.scrollTo(0, 0); };
+  // ----- Ask AI: the server turns the sentence into filters; we show them and load real jobs -----
+  function applyFilters(f) {
+    Object.assign(state, { q: f.q || '', role: f.role || '', city: f.city || '', fresher: !!f.fresher });
+    $('q').value = state.q;
+    for (const [id, value] of [['role', state.role], ['city', state.city]]) {
+      const sel = $(id);
+      if (value && ![...sel.options].some(o => o.value === value)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(value)}">${esc(value)}</option>`);
+      sel.value = value;
+    }
+    $('fresher').checked = state.fresher;
+    reload();
+  }
+
+  function showReply(html) {
+    $('askReply').innerHTML = html;
+    $('askReply').hidden = false;
+  }
+
+  async function ask(question) {
+    question = question.trim();
+    if (!question) return;
+    $('askBtn').disabled = true;
+    $('askBtn').textContent = 'Thinking…';
+    try {
+      const a = await getJson('/api/ask?q=' + encodeURIComponent(question));
+      const note = a.aiUsed ? '' : '<div class="note">AI is busy right now, so simple word matching was used.</div>';
+      if (!a.relevant) { showReply(esc(a.message) + note); return; }
+      applyFilters(a);
+      const suggs = (a.suggestions || []).map((s, i) =>
+        `<button type="button" class="sugg" data-i="${i}">${esc(s.label)} (${s.count})</button>`).join('');
+      showReply(`✨ ${esc(a.message)}${suggs ? `<div class="suggs">${suggs}</div>` : ''}${note}`);
+      $('askReply').querySelectorAll('.sugg').forEach(b => b.onclick = () => {
+        const s = a.suggestions[b.dataset.i];
+        applyFilters(s);
+        showReply(`Showing ${s.count} ${s.count === 1 ? 'job' : 'jobs'}: ${esc(s.label.toLowerCase())}.`);
+      });
+    } catch (e) {
+      showReply(esc(e instanceof TypeError ? 'Could not reach the server. Check your connection.' : e.message));
+    } finally {
+      $('askBtn').disabled = false;
+      $('askBtn').textContent = 'Ask';
+    }
+  }
+
+  $('askForm').onsubmit = e => { e.preventDefault(); ask($('askInput').value); };
+  document.querySelectorAll('.ex').forEach(b => b.onclick = () => { $('askInput').value = b.textContent; ask(b.textContent); });
+
   loadFilters().catch(() => {});
   loadStats().catch(() => {});
   load();
