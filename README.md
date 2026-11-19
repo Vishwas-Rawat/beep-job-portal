@@ -6,11 +6,11 @@ A small job portal for Indian college students and freshers. Every day it collec
 
 | | |
 |---|---|
-| Jobs collected | 2,500+ from 5 sources (63 company job boards + Careerjet) |
-| Fresher-friendly (AI tag) | ~870 |
+| Jobs collected | 2,600+ from 5 sources (63 company job boards + Careerjet) |
+| Fresher-friendly (AI tag) | ~780 |
 | Refresh | Daily at 06:00 IST via GitHub Actions |
 | Tagging accuracy (50 posts hand-checked) | role 76% · city 98% · fresher 96% |
-| LLM cost | ≈ $0.18 per 1,000 posts at paid rates (runs on the free tier) |
+| LLM cost | ≈ $0.16 per 1,000 posts at paid rates (runs on the free tier) |
 | Hosting cost | ₹0 (Render, Neon, GitHub Actions free tiers) |
 
 ---
@@ -63,9 +63,11 @@ Company boards have plenty of India jobs but mostly for experienced people. Care
 
 | Prompt | Role | City | Fresher | All three right | Cost / 1,000 posts |
 |---|---|---|---|---|---|
-| v1 | 76% | 98% | 84% | 64% | $0.135 |
-| v2 | 70% | 96% | 96% | 62% | $0.17 |
-| **v3 (live)** | **76%** | **98%** | **96%** | **70%** | **$0.18** |
+| v1 | 76% | 98% | 84% | 64% | $0.13 |
+| v2 | 70% | 96% | 96% | 62% | (not measured at scale) |
+| **v3 (live)** | **76%** | **98%** | **96%** | **70%** | **$0.16** |
+
+Cost per 1,000 is measured over the full re-tag of all 2,682 live posts with each prompt.
 
 What changed:
 - **v1 → v2:** in all 8 fresher misses the model had no experience information. Long posts were cut at 800 characters before the "X years" line, and SmartRecruiters' "Experience level" field is often wrong ("Senior Full Stack Developer" marked "Associate"). Fix: a Java rule where the title beats everything else ([`TitleSignals`](src/main/java/com/beep/jobportal/tag/TitleSignals.java), unit-tested), a prompt that says so, and 2,000 characters instead of 800. v2 also added one-line role definitions.
@@ -78,7 +80,7 @@ Caveat: v2 and v3 were tuned and tested on the same 50 posts, so the improvement
 ```
 cost = input tokens × $0.30 / 1M  +  output tokens × $2.50 / 1M      (Gemini 3.5 Flash-Lite, paid tier)
 ```
-Prices from Google's pricing page (checked 16 Nov 2026). Token counts are the real `usage` numbers returned by the API and stored in `run_log`. v3 uses ~270 input and ~40 output tokens per post ≈ **$0.18 per 1,000 posts**. A normal daily run tags 100–700 new posts, i.e. a few cents. The project runs on Gemini's free tier, so the actual spend is $0.
+Prices from Google's pricing page (checked 16 Nov 2026). Token counts are the real `usage` numbers returned by the API and stored in `run_log`. Measured over all 2,682 live posts, v3 uses ~254 input and ~33 output tokens per post ≈ **$0.16 per 1,000 posts** (v1: ~144 in / 36 out ≈ $0.13; v3 sends 2,000 description characters instead of 800). A normal daily run tags 100–700 new posts, i.e. a few cents. The project runs on Gemini's free tier, so the actual spend is $0.
 
 ## Daily refresh
 
