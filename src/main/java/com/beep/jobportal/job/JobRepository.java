@@ -33,7 +33,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
               AND (:role = '' OR j.role_tag = :role)
               AND (:city = '' OR j.city_tag = :city)
               AND (:fresherOnly = false OR j.is_fresher = true)
-            ORDER BY j.posted_at DESC NULLS LAST, j.id DESC
+            ORDER BY CASE WHEN :pattern <> '' AND j.title ~* :pattern THEN 0 ELSE 1 END,
+                     j.posted_at DESC NULLS LAST, j.id DESC
             """,
            countQuery = """
             SELECT count(*) FROM jobs j
