@@ -4,55 +4,150 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fresher Jobs India</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3EFJ%3C/text%3E%3C/svg%3E">
   <meta name="description" content="Internships and entry-level jobs across India, refreshed daily and tagged by role and city.">
   <style>
-    :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6b6b73; --line:#e4e4e7; --accent:#2563eb; --chip:#eef2ff; --chipText:#3730a3; --ok:#dcfce7; --okText:#166534; }
+    :root {
+      --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f1f3f6; --text:#0f172a; --muted:#5b6475; --faint:#8a93a3;
+      --line:#e3e7ee; --accent:#2563eb; --accent-hover:#1d4ed8; --accent-soft:#e8efff; --accent-text:#1e40af;
+      --ok-soft:#e6f6ec; --ok-text:#15703d; --danger-soft:#fdecec; --danger-text:#b42318;
+      --shadow:0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+      --shadow-hover:0 4px 14px rgba(15,23,42,.08);
+    }
     @media (prefers-color-scheme: dark) {
-      :root { --bg:#111113; --card:#1b1b1f; --text:#ececf0; --muted:#9a9aa3; --line:#2c2c33; --accent:#60a5fa; --chip:#262a40; --chipText:#c7d2fe; --ok:#163322; --okText:#86efac; }
+      :root {
+        --bg:#0d1015; --surface:#151a22; --surface-2:#1c222c; --text:#e8ecf2; --muted:#a2abba; --faint:#7a8494;
+        --line:#262d38; --accent:#5b9bff; --accent-hover:#7cb0ff; --accent-soft:#1b2a45; --accent-text:#b9d2ff;
+        --ok-soft:#13301f; --ok-text:#7fe0a3; --danger-soft:#3a1b1b; --danger-text:#ffb4ab;
+        --shadow:0 1px 2px rgba(0,0,0,.3); --shadow-hover:0 6px 18px rgba(0,0,0,.35);
+      }
     }
     * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
-    h1 { margin: 0 0 4px; font-size: 26px; }
-    .sub { color: var(--muted); margin: 0 0 20px; }
-    input[type=search], select { width:100%; padding:11px 12px; font-size:15px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); }
-    .filters { display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-top:10px; align-items:center; }
-    .toggle { display:flex; align-items:center; gap:8px; white-space:nowrap; padding:0 4px; cursor:pointer; }
-    .toggle input { width:18px; height:18px; }
-    @media (max-width: 560px) { .filters { grid-template-columns: 1fr; } }
-    .meta { color:var(--muted); font-size:13px; margin:12px 2px 14px; }
-    .job { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
-    .job a { color:var(--accent); text-decoration:none; font-weight:600; font-size:16px; }
-    .job a:hover { text-decoration:underline; }
-    .row { color:var(--muted); font-size:14px; margin-top:2px; }
-    .chips { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
-    .chip { font-size:12px; padding:2px 8px; border-radius:999px; background:var(--chip); color:var(--chipText); }
-    .chip.ok { background:var(--ok); color:var(--okText); }
-    .pager { display:flex; gap:8px; justify-content:center; margin-top:16px; }
-    button { padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); cursor:pointer; }
-    button:disabled { opacity:.4; cursor:default; }
-    footer { color:var(--muted); font-size:13px; margin-top:32px; border-top:1px solid var(--line); padding-top:14px; }
-    footer a { color:var(--accent); }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    a { color:var(--accent); }
+    :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+
+    /* Header */
+    header { background:var(--surface); border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:10px; padding:14px 0; }
+    .logo { width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; display:grid; place-items:center;
+            font-weight:700; font-size:14px; letter-spacing:.5px; flex:none; }
+    .brand-name { font-weight:700; font-size:17px; }
+    .brand-tag { color:var(--faint); font-size:13px; margin-left:auto; }
+    @media (max-width: 560px) { .brand-tag { display:none; } }
+
+    /* Hero */
+    .hero { padding: 32px 0 8px; }
+    h1 { margin:0; font-size:30px; line-height:1.2; letter-spacing:-.02em; }
+    .sub { color:var(--muted); margin:8px 0 0; max-width:620px; }
+    .stats { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; min-height:30px; }
+    .stat { background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--muted); }
+    .stat b { color:var(--text); font-weight:600; }
+
+    /* Filters */
+    .panel { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:20px; box-shadow:var(--shadow); }
+    .search { position:relative; }
+    .search svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--faint); pointer-events:none; }
+    input[type=search], select { width:100%; height:44px; padding:0 12px; font:inherit; border:1px solid var(--line);
+      border-radius:10px; background:var(--surface); color:var(--text); }
+    input[type=search] { padding-left:38px; }
+    input[type=search]:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+    .filters { display:grid; grid-template-columns: 1fr 1fr auto auto; gap:10px; margin-top:10px; align-items:center; }
+    .toggle { display:flex; align-items:center; gap:8px; white-space:nowrap; padding:0 6px; cursor:pointer; user-select:none; color:var(--text); }
+    .toggle input { width:18px; height:18px; accent-color:var(--accent); margin:0; }
+    .link-btn { background:none; border:0; color:var(--accent); font:inherit; font-size:14px; cursor:pointer; padding:6px; white-space:nowrap; }
+    .link-btn:hover { text-decoration:underline; }
+    .link-btn[hidden] { display:none; }
+    @media (max-width: 640px) { .filters { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 420px) { .filters { grid-template-columns: 1fr; } }
+
+    /* Results */
+    .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; color:var(--muted); font-size:14px; margin:18px 2px 10px; min-height:21px; }
+    .meta.error { color:var(--danger-text); }
+    .list { display:grid; gap:10px; }
+    .job { display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--line);
+           border-radius:14px; padding:16px; box-shadow:var(--shadow); transition:box-shadow .15s, border-color .15s; }
+    .job:hover { box-shadow:var(--shadow-hover); border-color:color-mix(in srgb, var(--accent) 25%, var(--line)); }
+    .avatar { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; font-weight:700; font-size:16px; flex:none;
+              background:hsl(var(--h, 220) 70% 50% / .14); color:hsl(var(--h, 220) 60% 38%); }
+    @media (prefers-color-scheme: dark) { .avatar { background:hsl(var(--h, 220) 70% 60% / .16); color:hsl(var(--h, 220) 80% 75%); } }
+    .body { flex:1; min-width:0; }
+    .title { margin:0; font-size:16px; font-weight:600; line-height:1.35; }
+    .title a { color:var(--text); text-decoration:none; }
+    .title a:hover { color:var(--accent); }
+    .company { color:var(--muted); font-size:14px; margin-top:2px; }
+    .facts { display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--faint); font-size:13px; margin-top:8px; }
+    .facts span { display:inline-flex; align-items:center; gap:4px; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .chip { font-size:12px; font-weight:500; padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-text); }
+    .chip.ok { background:var(--ok-soft); color:var(--ok-text); }
+    .apply { flex:none; align-self:center; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; border-radius:9px;
+             background:var(--accent); color:#fff; text-decoration:none; font-size:14px; font-weight:600; }
+    .apply:hover { background:var(--accent-hover); }
+    @media (max-width: 560px) {
+      .job { flex-wrap:wrap; }
+      .avatar { width:36px; height:36px; font-size:14px; }
+      .apply { width:100%; justify-content:center; margin-top:4px; }
+    }
+    .empty { text-align:center; padding:40px 16px; background:var(--surface); border:1px dashed var(--line); border-radius:14px; color:var(--muted); }
+    .empty strong { display:block; color:var(--text); font-size:16px; margin-bottom:4px; }
+
+    /* Loading skeleton */
+    .skeleton .avatar, .skeleton .bar { background:var(--surface-2); animation:pulse 1.2s ease-in-out infinite; }
+    .bar { height:12px; border-radius:6px; margin-top:8px; }
+    @keyframes pulse { 50% { opacity:.5; } }
+    @media (prefers-reduced-motion: reduce) { .skeleton .avatar, .skeleton .bar { animation:none; } }
+
+    /* Pager */
+    .pager { display:flex; gap:10px; justify-content:center; align-items:center; margin-top:20px; }
+    .pager span { color:var(--muted); font-size:14px; min-width:110px; text-align:center; }
+    button.page { height:38px; padding:0 14px; border:1px solid var(--line); border-radius:9px; background:var(--surface);
+                  color:var(--text); font:inherit; font-size:14px; cursor:pointer; }
+    button.page:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+    button.page:disabled { opacity:.45; cursor:default; }
+
+    footer { color:var(--faint); font-size:13px; margin:40px 0 32px; border-top:1px solid var(--line); padding-top:16px; }
   </style>
 </head>
 <body>
-<main>
-  <h1>Fresher Jobs India</h1>
-  <p class="sub">Internships and entry-level jobs across India, refreshed daily and tagged by role and city.</p>
+<header>
+  <div class="wrap brand">
+    <div class="logo" aria-hidden="true">FJ</div>
+    <div class="brand-name">Fresher Jobs India</div>
+    <div class="brand-tag">Refreshed daily</div>
+  </div>
+</header>
 
-  <input id="q" type="search" placeholder="Search title, company or city (e.g. java, Pune, analyst)" autocomplete="off">
-  <div class="filters">
-    <select id="role"><option value="">All roles</option></select>
-    <select id="city"><option value="">All cities</option></select>
-    <label class="toggle"><input id="fresher" type="checkbox" checked> Freshers only</label>
+<main class="wrap">
+  <section class="hero">
+    <h1>Find your first job in India</h1>
+    <p class="sub">Internships and entry-level roles from company career pages, refreshed daily and tagged by role and city.</p>
+    <div class="stats" id="stats" aria-live="polite"></div>
+  </section>
+
+  <div class="panel" role="search">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search title, company or city (e.g. java, Pune, analyst)" autocomplete="off" aria-label="Search jobs">
+    </div>
+    <div class="filters">
+      <select id="role" aria-label="Role"><option value="">All roles</option></select>
+      <select id="city" aria-label="City"><option value="">All cities</option></select>
+      <label class="toggle"><input id="fresher" type="checkbox" checked> Freshers only</label>
+      <button class="link-btn" id="clear" type="button" hidden>Clear filters</button>
+    </div>
   </div>
 
-  <div class="meta" id="meta">Loading…</div>
-  <div id="list"></div>
-  <div class="pager">
-    <button id="prev">← Prev</button>
-    <button id="next">Next →</button>
-  </div>
+  <div class="meta" id="meta" aria-live="polite">Loading jobs…</div>
+  <div class="list" id="list"></div>
+  <nav class="pager" aria-label="Pages">
+    <button class="page" id="prev" type="button">← Prev</button>
+    <span id="pageinfo"></span>
+    <button class="page" id="next" type="button">Next →</button>
+  </nav>
 
   <footer>
     Jobs come from public company job boards (Greenhouse, Lever, Ashby, SmartRecruiters)
@@ -65,36 +160,110 @@
   const state = { q: '', role: '', city: '', fresher: true, page: 0, totalPages: 0 };
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const day = iso => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+  const SOURCES = { greenhouse:'Greenhouse', lever:'Lever', ashby:'Ashby', smartrecruiters:'SmartRecruiters', careerjet:'Careerjet' };
+
+  function ago(iso) {
+    if (!iso) return '';
+    const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 30) return `${days} days ago`;
+    return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  // Stable soft colour per company for the initial badge
+  function avatarStyle(name) {
+    let h = 0;
+    for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) % 360;
+    return `--h:${h}`;
+  }
+
+  const pin = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+  const clock = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+  async function getJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Could not load jobs. Please try again.');
+    return res.json();
+  }
 
   async function loadFilters() {
-    const f = await (await fetch('/api/filters')).json();
+    const f = await getJson('/api/filters');
     const fill = (sel, items) => items.forEach(i => sel.insertAdjacentHTML('beforeend',
       `<option value="${esc(i.name)}">${esc(i.name)} (${i.count})</option>`));
     fill($('role'), f.roles);
     fill($('city'), f.cities);
   }
 
+  async function loadStats() {
+    const s = await getJson('/api/stats');
+    const updated = s.lastUpdated ? new Date(s.lastUpdated).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }) : '';
+    $('stats').innerHTML =
+      `<span class="stat"><b>${s.totalJobs.toLocaleString('en-IN')}</b> jobs</span>` +
+      `<span class="stat"><b>${s.fresherJobs.toLocaleString('en-IN')}</b> fresher-friendly</span>` +
+      (updated ? `<span class="stat">Updated <b>${esc(updated)}</b></span>` : '');
+  }
+
+  function skeleton() {
+    $('list').innerHTML = Array.from({ length: 4 }, () => `
+      <div class="job skeleton" aria-hidden="true"><div class="avatar"></div>
+        <div class="body"><div class="bar" style="width:55%;margin-top:4px"></div><div class="bar" style="width:30%"></div><div class="bar" style="width:40%"></div></div>
+      </div>`).join('');
+  }
+
+  function card(j) {
+    const company = j.company || '';
+    return `
+      <article class="job">
+        <div class="avatar" style="${avatarStyle(company)}" aria-hidden="true">${esc(company.trim().charAt(0).toUpperCase() || '?')}</div>
+        <div class="body">
+          <h2 class="title"><a href="${esc(j.applyUrl)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a></h2>
+          <div class="company">${esc(company)}</div>
+          <div class="facts">
+            <span>${pin}${esc(j.city || j.location)}</span>
+            ${j.postedAt ? `<span>${clock}${esc(ago(j.postedAt))}</span>` : ''}
+            ${SOURCES[j.source] ? `<span>via ${SOURCES[j.source]}</span>` : ''}
+          </div>
+          <div class="chips">
+            ${j.role ? `<span class="chip">${esc(j.role)}</span>` : ''}
+            ${j.isFresher ? '<span class="chip ok">Fresher friendly</span>' : ''}
+          </div>
+        </div>
+        <a class="apply" href="${esc(j.applyUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Apply: ${esc(j.title)} at ${esc(company)}">Apply ↗</a>
+      </article>`;
+  }
+
+  let loadId = 0;
   async function load() {
+    const id = ++loadId;
+    $('meta').classList.remove('error');
+    $('clear').hidden = !(state.q || state.role || state.city || !state.fresher);
+    skeleton();
+    try {
+      await render(id);
+    } catch (e) {
+      if (id !== loadId) return;
+      $('list').innerHTML = '';
+      $('prev').disabled = state.page === 0;
+      $('next').disabled = true;
+      $('pageinfo').textContent = '';
+      $('meta').classList.add('error');
+      $('meta').textContent = e instanceof TypeError ? 'Could not load jobs. Check your connection.' : e.message;
+    }
+  }
+
+  async function render(id) {
     const p = new URLSearchParams({ q: state.q, role: state.role, city: state.city,
                                     fresher: state.fresher, page: state.page, size: 20 });
-    const data = await (await fetch('/api/jobs?' + p)).json();
+    const data = await getJson('/api/jobs?' + p);
+    if (id !== loadId) return; // a newer request started; drop this stale one
     state.totalPages = data.totalPages;
-    $('list').innerHTML = data.items.map(j => `
-      <div class="job">
-        <a href="${esc(j.applyUrl)}" target="_blank" rel="noopener noreferrer">${esc(j.title)}</a>
-        <div class="row">${esc(j.company)} · ${esc(j.city || j.location)}</div>
-        <div class="row">Posted ${esc(day(j.postedAt))}</div>
-        <div class="chips">
-          ${j.role ? `<span class="chip">${esc(j.role)}</span>` : ''}
-          ${j.isFresher ? '<span class="chip ok">Fresher friendly</span>' : ''}
-        </div>
-      </div>`).join('') || '<p class="meta">No jobs match these filters.</p>';
+    $('list').innerHTML = data.items.map(card).join('') ||
+      '<div class="empty"><strong>No jobs match these filters.</strong>Try a different keyword, or clear the filters.</div>';
     $('prev').disabled = state.page === 0;
     $('next').disabled = state.page + 1 >= state.totalPages;
-    const stats = await (await fetch('/api/stats')).json();
-    $('meta').textContent = `${data.total} jobs shown · ${stats.totalJobs} total, ${stats.fresherJobs} fresher-friendly` +
-      (stats.lastUpdated ? ` · last updated ${new Date(stats.lastUpdated).toLocaleString('en-IN')}` : '');
+    $('pageinfo').textContent = data.totalPages ? `Page ${state.page + 1} of ${data.totalPages}` : '';
+    $('meta').textContent = `${data.total.toLocaleString('en-IN')} ${data.total === 1 ? 'job' : 'jobs'} found`;
   }
 
   const reload = () => { state.page = 0; load(); };
@@ -103,10 +272,16 @@
   $('role').onchange = e => { state.role = e.target.value; reload(); };
   $('city').onchange = e => { state.city = e.target.value; reload(); };
   $('fresher').onchange = e => { state.fresher = e.target.checked; reload(); };
+  $('clear').onclick = () => {
+    Object.assign(state, { q: '', role: '', city: '', fresher: true });
+    $('q').value = ''; $('role').value = ''; $('city').value = ''; $('fresher').checked = true;
+    reload();
+  };
   $('prev').onclick = () => { state.page--; load(); window.scrollTo(0, 0); };
   $('next').onclick = () => { state.page++; load(); window.scrollTo(0, 0); };
   loadFilters().catch(() => {});
-  load().catch(() => $('meta').textContent = 'Could not load jobs.');
+  loadStats().catch(() => {});
+  load();
 </script>
 </body>
 </html>

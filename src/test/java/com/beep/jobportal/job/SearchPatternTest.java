@@ -14,6 +14,16 @@ class SearchPatternTest {
     }
 
     @Test
+    void cityListSkipsNonCities() {
+        assertEquals(true, JobController.isCityName("Pune"));
+        assertEquals(true, JobController.isCityName("Remote"));
+        assertEquals(false, JobController.isCityName("Unknown"));
+        assertEquals(false, JobController.isCityName("India"));
+        assertEquals(false, JobController.isCityName("Karnataka"));
+        assertEquals(false, JobController.isCityName(" "));
+    }
+
+    @Test
     void emptyMeansNoFilter() {
         assertEquals("", JobController.toPattern(""));
         assertEquals("", JobController.toPattern("   "));

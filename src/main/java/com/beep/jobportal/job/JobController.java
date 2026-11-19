@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Public read API used by the web page. */
@@ -53,9 +54,22 @@ public class JobController {
     /** GET /api/filters -> roles and top cities with counts, for the dropdowns */
     @GetMapping("/api/filters")
     public Map<String, Object> filters() {
+        List<Object[]> cities = jobs.countByCity().stream()
+                .filter(r -> isCityName((String) r[0]))
+                .toList();
         return Map.of(
                 "roles", toCounts(jobs.countByRole(), Integer.MAX_VALUE),
-                "cities", toCounts(jobs.countByCity(), MAX_CITIES));
+                "cities", toCounts(cities, MAX_CITIES));
+    }
+
+    /** Tags that are not a city (no city found, or only a country/state). Jobs still show under "All cities". */
+    private static final Set<String> NOT_CITIES = Set.of(
+            "unknown", "india", "andhra pradesh", "assam", "bihar", "gujarat", "haryana", "karnataka",
+            "kerala", "madhya pradesh", "maharashtra", "odisha", "punjab", "rajasthan", "tamil nadu",
+            "telangana", "uttar pradesh", "uttarakhand", "west bengal");
+
+    static boolean isCityName(String name) {
+        return name != null && !name.isBlank() && !NOT_CITIES.contains(name.strip().toLowerCase(Locale.ROOT));
     }
 
     /** GET /api/stats -> totals + when the last successful run finished */
