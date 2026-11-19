@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Public read API used by the web page. */
@@ -42,8 +44,9 @@ public class JobController {
                                     @RequestParam(defaultValue = "20") int size) {
         // order is fixed in the query (newest first)
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+        Pattern words = javaPattern(q);
         Page<JobView> result = jobs.search(toPattern(q), role.strip(), city.strip(), fresher, pageable)
-                .map(JobView::of);
+                .map(j -> JobView.of(j, descriptionMatch(j, words)));
         return Map.of(
                 "items", result.getContent(),
                 "total", result.getTotalElements(),
@@ -84,7 +87,8 @@ public class JobController {
     }
 
     /**
-     * "java python" -> "java|python": a job matches if it mentions ANY of the words.
+     * "java python" -> "\mjava\M|\mpython\M": a job matches if it mentions ANY of the words, as whole words
+     * (Postgres \m = start of word, \M = end of word), so "java" does not match "javascript".
      * Each word is quoted so characters like "c++" or ".net" are matched literally.
      */
     public static String toPattern(String q) {
@@ -93,8 +97,38 @@ public class JobController {
                 .filter(w -> !w.isEmpty())
                 .distinct()
                 .limit(8)
-                .map(w -> w.replaceAll("([\\\\.\\[\\]{}()*+?^$|])", "\\\\$1"))
+                .map(w -> (Character.isLetterOrDigit(w.charAt(0)) ? "\\m" : "")
+                        + w.replaceAll("([\\\\.\\[\\]{}()*+?^$|])", "\\\\$1")
+                        + (Character.isLetterOrDigit(w.charAt(w.length() - 1)) ? "\\M" : ""))
                 .collect(Collectors.joining("|"));
+    }
+
+    /** Same words as toPattern, as a Java regex (\b instead of Postgres \m / \M). */
+    static Pattern javaPattern(String q) {
+        String p = toPattern(q).replace("\\m", "\\b").replace("\\M", "\\b");
+        return p.isEmpty() ? null : Pattern.compile(p, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    }
+
+    /**
+     * When the search words are only in the description (not title, company or city),
+     * return a short piece of text around the first match, so the page can show why the job is listed.
+     */
+    static String descriptionMatch(Job j, Pattern p) {
+        if (p == null || j.getDescription() == null) return null;
+        String shown = String.join(" ", nz(j.getTitle()), nz(j.getCompany()), nz(j.getLocationRaw()));
+        if (p.matcher(shown).find()) return null;
+        Matcher m = p.matcher(j.getDescription());
+        if (!m.find()) return null;
+        String d = j.getDescription();
+        int from = Math.max(0, m.start() - 60), to = Math.min(d.length(), m.end() + 60);
+        while (from > 0 && from < m.start() && !Character.isWhitespace(d.charAt(from - 1))) from++;   // start on a whole word
+        while (to < d.length() && !Character.isWhitespace(d.charAt(to))) to--;     // end on a whole word
+        if (to <= m.end()) to = Math.min(d.length(), m.end() + 60);
+        return (from > 0 ? "…" : "") + d.substring(from, to).replaceAll("\\s+", " ").strip() + (to < d.length() ? "…" : "");
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s;
     }
 
     private static List<Map<String, Object>> toCounts(List<Object[]> rows, int limit) {

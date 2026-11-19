@@ -111,6 +111,9 @@
     .company { color:var(--muted); font-size:14px; margin-top:2px; }
     .facts { display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--faint); font-size:13px; margin-top:8px; }
     .facts span { display:inline-flex; align-items:center; gap:4px; }
+    .why { margin-top:8px; font-size:13px; color:var(--muted); line-height:1.45; }
+    .why b { color:var(--text); font-weight:600; }
+    .why mark { background:var(--accent-soft); color:var(--accent-text); border-radius:3px; padding:0 2px; }
     .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
     .chip { font-size:12px; font-weight:500; padding:3px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-text); }
     .chip.ok { background:var(--ok-soft); color:var(--ok-text); }
@@ -260,6 +263,15 @@
       </div>`).join('');
   }
 
+  // Escape the text, then mark the searched words (whole words, like the server search)
+  function highlight(text) {
+    const words = state.q.toLowerCase().split(/[\s,]+/).filter(Boolean)
+      .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const safe = esc(text);
+    if (!words.length) return safe;
+    return safe.replace(new RegExp(`(^|[^\\p{L}\\p{N}])(${words.join('|')})(?![\\p{L}\\p{N}])`, 'giu'), '$1<mark>$2</mark>');
+  }
+
   function card(j) {
     const company = j.company || '';
     return `
@@ -273,6 +285,7 @@
             ${j.postedAt ? `<span>${clock}${esc(ago(j.postedAt))}</span>` : ''}
             ${SOURCES[j.source] ? `<span>via ${SOURCES[j.source]}</span>` : ''}
           </div>
+          ${j.descriptionMatch ? `<div class="why"><b>Matched in description:</b> ${highlight(j.descriptionMatch)}</div>` : ''}
           <div class="chips">
             ${j.role ? `<span class="chip">${esc(j.role)}</span>` : ''}
             ${j.isFresher ? '<span class="chip ok">Fresher friendly</span>' : ''}
