@@ -1,8 +1,9 @@
 # LLM tagging settings. Model/provider come from LLM_* env vars (application.properties).
 tagging:
   enabled: true
+  prompt-version: v2           # stored in run_log next to the model; v1 kept in prompts/tagging-system-v1.txt
   batch-size: 20               # posts per LLM call: fewer calls, less repeated prompt overhead
-  description-chars: 800       # send only the start of the description
+  description-chars: 2000      # v1 sent 800; the "X years" line was often cut off, so the model guessed
   max-attempts: 2              # try a post twice, then give up and use the rule-based fallback
   max-jobs-per-run: 3000
   delay-between-batches-ms: 4000   # free tier rate limits are not published; stay under ~15 calls/min

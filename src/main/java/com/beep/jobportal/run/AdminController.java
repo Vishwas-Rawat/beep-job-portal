@@ -85,6 +85,24 @@ public class AdminController {
     }
 
     /**
+     * POST /api/admin/retag?ids=1,2,3  (header X-Admin-Token)
+     * Re-tag these jobs with the current prompt and wait for the result (max 200 ids).
+     */
+    @PostMapping("/api/admin/retag")
+    public ResponseEntity<?> retag(@RequestHeader(value = TOKEN_HEADER, required = false) String token,
+                                   @RequestParam List<Long> ids) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        if (ids.size() > 200) {
+            return ResponseEntity.badRequest().body(Map.of("error", "max 200 ids"));
+        }
+        if (refreshService.isRunning()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "a run is already in progress"));
+        }
+        return ResponseEntity.ok(refreshService.retag(ids));
+    }
+
+    /**
      * GET /api/admin/sample?size=50&seed=beep  (header X-Admin-Token)
      * Random jobs for hand-labeling. AI tags are left out on purpose, so the human label is not biased.
      */

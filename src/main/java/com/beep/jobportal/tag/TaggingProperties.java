@@ -8,6 +8,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "tagging")
 public record TaggingProperties(
         boolean enabled,
+        String promptVersion,
         int batchSize,
         int descriptionChars,
         int maxAttempts,

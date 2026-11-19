@@ -59,21 +59,26 @@ public class RefreshService {
     }
 
     public RunLog refresh() {
-        return run(true);
+        return run(true, null);
     }
 
     public RunLog tagOnly() {
-        return run(false);
+        return run(false, null);
     }
 
-    private RunLog run(boolean fetch) {
+    /** Re-tag specific jobs with the current prompt (accuracy re-check on the same sample). */
+    public RunLog retag(List<Long> ids) {
+        return run(false, ids);
+    }
+
+    private RunLog run(boolean fetch, List<Long> retagIds) {
         if (!running.compareAndSet(false, true)) {
             throw new IllegalStateException("A run is already in progress");
         }
         RunLog run = runs.save(new RunLog());
         try {
             if (fetch) fetchAndSave(run);
-            tag(run);
+            tag(run, retagIds);
             run.setStatus("SUCCESS");
         } catch (Exception e) {
             log.error("Run failed", e);
@@ -133,14 +138,14 @@ public class RefreshService {
     }
 
     /** Tag every untagged job and record real token usage + cost. A tagging failure never loses fetched jobs. */
-    private void tag(RunLog run) {
+    private void tag(RunLog run, List<Long> retagIds) {
         try {
-            TagStats s = tagging.tagPending();
+            TagStats s = retagIds == null ? tagging.tagPending() : tagging.retag(retagIds);
             run.setTagged(s.tagged());
             run.setTagFailed(s.fallback());
             run.setInputTokens(s.inputTokens());
             run.setOutputTokens(s.outputTokens());
-            run.setLlmModel(llmModel);
+            run.setLlmModel(llmModel + " / prompt " + tagProps.promptVersion());
             run.setCostUsd(cost(s.inputTokens(), s.outputTokens()));
         } catch (Exception e) {
             log.error("Tagging failed", e);

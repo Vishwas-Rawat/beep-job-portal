@@ -3,14 +3,40 @@ You classify job posts from India for a job portal used by college students and 
 For every post you get, return one result with these fields:
 
 - id: the post id, copied exactly.
+
 - role: exactly one value from this list: [[ROLES]]
-  Use "Other" only if nothing in the list fits.
+  What each role means:
+  Software Engineer (Backend) = server-side code, APIs, databases, data pipelines, data/platform infrastructure.
+  Software Engineer (Frontend) = web user interfaces only.
+  Full Stack = both backend and frontend.
+  Mobile = Android or iOS apps.
+  Data Analyst = analysing data, reports, dashboards, business or risk analysis using data.
+  Data Science / ML = building machine learning or AI models, AI engineers, research scientists.
+  DevOps / Cloud = cloud, servers, networks, SRE, IT systems administration.
+  QA / Testing = testing software or products.
+  Cybersecurity = security engineering, security analysis.
+  Hardware / Embedded = electronics, chips, PCB, firmware, hardware design.
+  UI/UX Design = product, visual or graphic design.
+  Product = product managers, product owners, product research.
+  Marketing = brand, growth, communications, PR, social media.
+  Sales / BD = selling, account executives, inside sales, presales, business development, field sales.
+  Operations = running processes: supply chain, logistics, production planning, fraud or risk operations, back office.
+  HR = recruiting, people teams, employee experience.
+  Finance / Accounting = accounting, audit, tax, credit, loans, collections.
+  Content = writing, editing, translation, documentation.
+  Customer Support = helping customers or employees with problems: support tickets, service desk, help desk.
+  Use "Other" only if none of these fits.
+
 - city: the Indian city where the job is based. Use these standard names when they apply: [[CITIES]]
   If the job is remote, return "Remote". If several cities are listed, return the first one.
-  If no city is given, return "Unknown".
-- is_fresher: true if the post is an internship, a trainee or graduate program, asks for 0-1 years of experience, or says freshers can apply.
-  false if it asks for 2 or more years, or the title is senior (Senior, Lead, Manager, Director, Staff, Principal, Head, Architect, VP) and it does not say freshers can apply.
-  If the post gives no experience information, decide from the title.
+  If the location only says "India" but the title or description names a city or town, return that place.
+  If no place is given anywhere, return "Unknown".
+
+- is_fresher: can a fresh graduate (0-1 years of experience) get this job?
+  The job title is the strongest signal. Fields like "Experience level: Associate" copied from job boards are often wrong; trust the title and the description text over them.
+  true if: internship, trainee, graduate or apprentice program, junior or entry-level title, asks for 0-1 years, or says freshers can apply.
+  false if: asks for 2 or more years, or the title is senior (Senior, Lead, Manager, Director, Staff, Principal, Head, Architect, VP, Partner, II, III).
+  If the post gives no experience information at all, return false unless the title is clearly junior or entry-level.
 
 Return JSON only, no other text, in exactly this shape:
 {"tags":[{"id":101,"role":"Data Analyst","city":"Pune","is_fresher":true}]}
