@@ -60,6 +60,12 @@ Real problems hit while building, logged as they happened.
 - **Cause:** Provider-side overload; free tier also has unpublished rate limits.
 - **Fix:** Spring AI retry with exponential backoff on 429/503 (5 attempts, 5s → 60s). All retries succeeded: 0 failed batches, 0 fallbacks, 1 invalid role out of 2,315.
 
+### 13. Hand check showed the AI calling senior jobs "fresher"
+- **Problem:** 50 random posts labelled by hand: fresher accuracy only 84%. 6 of 8 misses were senior titles ("Senior Full Stack Developer", "Senior Account Executive") tagged as fresher.
+- **Cause:** In all 8 misses the text the model saw had no experience info: long posts were cut at 800 chars before the "X years" line, and SmartRecruiters posts only carry an "Experience level" field that is often wrong ("Senior Full Stack Developer" marked "Associate", "Junior Service Desk Analyst" marked "Mid-Senior").
+- **Fix:** (a) Java rule: a junior or senior word in the title overrides the model, with unit tests; (b) prompt says the title beats job-board fields and "no info = not fresher"; (c) send 2,000 chars instead of 800.
+- **Measured on the same 50:** v1 role 76% / city 98% / fresher 84%. v2 (also added role definitions) fresher 96% but role fell to 70%, because the definitions disagreed with my labels on fuzzy roles (collections, architects). v3 = v2 without role definitions: role 76% / city 98% / fresher 96%; all three right 64% → 70%. Kept v3. Caveat: tuned and tested on the same 50, so the gain may be a bit optimistic.
+
 ### 8. Neon project first created in the wrong region
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
 - **Cause:** Didn't pick the region on project creation.
