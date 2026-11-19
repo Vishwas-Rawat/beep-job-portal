@@ -164,6 +164,14 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("ip", egressIp.current()));
     }
 
+    /** GET /api/admin/runs  (header X-Admin-Token): every run_log row, for the cost report. */
+    @GetMapping("/api/admin/runs")
+    public ResponseEntity<?> allRuns(@RequestHeader(value = TOKEN_HEADER, required = false) String token) {
+        ResponseEntity<?> denied = checkToken(token);
+        if (denied != null) return denied;
+        return ResponseEntity.ok(runs.findAllByOrderByStartedAtAsc());
+    }
+
     /** Public: latest run (any status), for "last updated" and checking a background run. */
     @GetMapping("/api/runs/latest")
     public ResponseEntity<RunLog> latestRun() {

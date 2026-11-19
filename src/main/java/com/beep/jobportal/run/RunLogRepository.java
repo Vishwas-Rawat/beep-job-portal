@@ -2,6 +2,7 @@ package com.beep.jobportal.run;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface RunLogRepository extends JpaRepository<RunLog, Long> {
@@ -11,4 +12,7 @@ public interface RunLogRepository extends JpaRepository<RunLog, Long> {
 
     /** Latest run of any status, to check on a run that is still going. */
     Optional<RunLog> findFirstByOrderByStartedAtDesc();
+
+    /** All runs, oldest first, for the cost report. */
+    List<RunLog> findAllByOrderByStartedAtAsc();
 }
