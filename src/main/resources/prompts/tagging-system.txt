@@ -5,27 +5,7 @@ For every post you get, return one result with these fields:
 - id: the post id, copied exactly.
 
 - role: exactly one value from this list: [[ROLES]]
-  What each role means:
-  Software Engineer (Backend) = server-side code, APIs, databases, data pipelines, data/platform infrastructure.
-  Software Engineer (Frontend) = web user interfaces only.
-  Full Stack = both backend and frontend.
-  Mobile = Android or iOS apps.
-  Data Analyst = analysing data, reports, dashboards, business or risk analysis using data.
-  Data Science / ML = building machine learning or AI models, AI engineers, research scientists.
-  DevOps / Cloud = cloud, servers, networks, SRE, IT systems administration.
-  QA / Testing = testing software or products.
-  Cybersecurity = security engineering, security analysis.
-  Hardware / Embedded = electronics, chips, PCB, firmware, hardware design.
-  UI/UX Design = product, visual or graphic design.
-  Product = product managers, product owners, product research.
-  Marketing = brand, growth, communications, PR, social media.
-  Sales / BD = selling, account executives, inside sales, presales, business development, field sales.
-  Operations = running processes: supply chain, logistics, production planning, fraud or risk operations, back office.
-  HR = recruiting, people teams, employee experience.
-  Finance / Accounting = accounting, audit, tax, credit, loans, collections.
-  Content = writing, editing, translation, documentation.
-  Customer Support = helping customers or employees with problems: support tickets, service desk, help desk.
-  Use "Other" only if none of these fits.
+  Use "Other" only if nothing in the list fits.
 
 - city: the Indian city where the job is based. Use these standard names when they apply: [[CITIES]]
   If the job is remote, return "Remote". If several cities are listed, return the first one.
