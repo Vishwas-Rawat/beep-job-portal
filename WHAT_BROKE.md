@@ -75,3 +75,15 @@ Real problems hit while building, logged as they happened.
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
 - **Cause:** Didn't pick the region on project creation.
 - **Fix:** Recreated the empty project in Singapore before any data went in. Avoids ~200 ms extra per query (the first refresh does ~1,700 inserts).
+
+## Day 4 — Thu 19 Nov 2026
+
+### 15. Page went silent when a request failed
+- **Problem:** Running an 89-case test sheet on the live site: with the network off, or searching `' OR 1=1 --` (Render's firewall answers that with a 403 HTML page), the page kept showing the old results with no message.
+- **Cause:** Only the first page load had error handling, and the code read every response as JSON without checking the status.
+- **Fix:** Check the status on every request and show "Could not load jobs…" (or "Too many requests…" for 429). Older responses that arrive after a newer search are ignored, so fast filter changes can't show stale results.
+
+### 16. City filter listed "Unknown", "India" and "Karnataka"
+- **Problem:** Same test sheet: the city dropdown had entries that are not cities.
+- **Cause:** When no city is found the tag falls back to "Unknown"/"India", and some posts only name a state.
+- **Fix:** The dropdown skips these names (unit-tested). Those jobs still show under "All cities".

@@ -6,8 +6,8 @@ A small job portal for Indian college students and freshers. Every day it collec
 
 | | |
 |---|---|
-| Jobs collected | 2,600+ from 5 sources (63 company job boards + Careerjet) |
-| Fresher-friendly (AI tag) | ~780 |
+| Jobs collected | 2,800+ from 5 sources (63 company job boards + Careerjet) |
+| Fresher-friendly (AI tag) | ~870 |
 | Refresh | Daily at 06:00 IST via GitHub Actions |
 | Tagging accuracy (50 posts hand-checked) | role 76% · city 98% · fresher 96% |
 | LLM cost | ≈ $0.16 per 1,000 posts at paid rates (runs on the free tier) |
@@ -86,6 +86,13 @@ Prices from Google's pricing page (checked 16 Nov 2026). Token counts are the re
 
 Render's free web service sleeps when idle, so an in-app `@Scheduled` job would not fire. Instead [`.github/workflows/daily-refresh.yml`](.github/workflows/daily-refresh.yml) runs at 06:00 IST: wakes the app, calls `POST /api/admin/refresh` with a secret token, then polls `/api/runs/latest` every minute until the run finishes (which also keeps the app awake). Can also be started from the Actions tab.
 
+## Web page and security
+
+- **Page:** one plain HTML/JS file served by Spring Boot. Search, role and city filters, a "Freshers only" switch, page numbers, an Apply button on every job, a loading state, and a clear message when a request fails. Works on phones and follows the system light/dark theme.
+- **Rate limit:** per IP, 60 requests a minute on `/api/*` and 10 a minute on `/api/admin/*`; over the limit the API answers `429` with `Retry-After` ([`RateLimitFilter`](src/main/java/com/beep/jobportal/web/RateLimitFilter.java)). In memory, which is fine for one Render instance.
+- **Security headers** on every response: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and a `Content-Security-Policy` that only allows the site's own content ([`SecurityHeadersFilter`](src/main/java/com/beep/jobportal/web/SecurityHeadersFilter.java)).
+- **Testing:** unit tests for search, title rule, city list, rate limit and headers (`mvn test`), plus an 89-case manual test sheet run against the live site.
+
 ## Tech stack
 
 Java 17 · Spring Boot 3.5 · Spring AI 1.1 · PostgreSQL (Neon) · Flyway · Jsoup · plain HTML/JS front end served by Spring Boot · Docker · Render · GitHub Actions
@@ -149,6 +156,8 @@ src/main/resources/
 ## Known limitations / next steps
 
 - Closed jobs are not removed yet (next: mark jobs missing from the source for N days as expired).
+- A few Careerjet duplicates get through when the same job is posted with different location text (for example "Bangalore, Karnataka, India" and "Karnataka, India"); 3 found in 2,874.
+- The rate limit reads the client IP from the first `X-Forwarded-For` entry (Render is behind a proxy). A client can fake that header to get around the limit; it cannot use it to reach anything else.
 - Careerjet only accepts requests from declared IPs; if Render's outgoing IP changes, it has to be re-declared (`GET /api/admin/egress-ip` shows it).
 - Role list could add Data Engineering and IT Support; re-measure on a fresh sample of 50.
 - Problems hit while building and how they were fixed: [WHAT_BROKE.md](WHAT_BROKE.md).
