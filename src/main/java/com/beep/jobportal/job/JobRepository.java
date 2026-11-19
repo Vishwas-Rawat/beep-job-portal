@@ -23,16 +23,27 @@ public interface JobRepository extends JpaRepository<Job, Long> {
      * Text search on title/company/location. q is never null ("" matches all),
      * which avoids Postgres "could not determine data type" errors on null params.
      */
-    @Query("""
-            select j from Job j
-            where (lower(j.title) like lower(concat('%', :q, '%'))
-                or lower(j.company) like lower(concat('%', :q, '%'))
-                or lower(j.locationRaw) like lower(concat('%', :q, '%')))
-              and (:role = '' or j.roleTag = :role)
-              and (:city = '' or j.cityTag = :city)
-              and (:fresherOnly = false or j.isFresher = true)
-            """)
-    Page<Job> search(@Param("q") String q, @Param("role") String role, @Param("city") String city,
+    /**
+     * pattern = search words joined as a case-insensitive regex, e.g. "java|python" (any word matches),
+     * checked against title, company, location and description. "" = no text filter.
+     */
+    @Query(value = """
+            SELECT * FROM jobs j
+            WHERE (:pattern = '' OR concat_ws(' ', j.title, j.company, j.location_raw, j.description) ~* :pattern)
+              AND (:role = '' OR j.role_tag = :role)
+              AND (:city = '' OR j.city_tag = :city)
+              AND (:fresherOnly = false OR j.is_fresher = true)
+            ORDER BY j.posted_at DESC NULLS LAST, j.id DESC
+            """,
+           countQuery = """
+            SELECT count(*) FROM jobs j
+            WHERE (:pattern = '' OR concat_ws(' ', j.title, j.company, j.location_raw, j.description) ~* :pattern)
+              AND (:role = '' OR j.role_tag = :role)
+              AND (:city = '' OR j.city_tag = :city)
+              AND (:fresherOnly = false OR j.is_fresher = true)
+            """,
+           nativeQuery = true)
+    Page<Job> search(@Param("pattern") String pattern, @Param("role") String role, @Param("city") String city,
                      @Param("fresherOnly") boolean fresherOnly, Pageable pageable);
 
     /** [role, count] for the role dropdown, biggest first. */

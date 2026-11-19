@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Public read API used by the web page. */
 @RestController
@@ -36,9 +39,9 @@ public class JobController {
                                     @RequestParam(defaultValue = "false") boolean fresher,
                                     @RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "20") int size) {
-        var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
-                Sort.by(Sort.Order.desc("postedAt").nullsLast()));
-        Page<JobView> result = jobs.search(q.strip(), role.strip(), city.strip(), fresher, pageable)
+        // order is fixed in the query (newest first)
+        var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+        Page<JobView> result = jobs.search(toPattern(q), role.strip(), city.strip(), fresher, pageable)
                 .map(JobView::of);
         return Map.of(
                 "items", result.getContent(),
@@ -64,6 +67,20 @@ public class JobController {
         out.put("lastUpdated", runs.findFirstByStatusOrderByFinishedAtDesc("SUCCESS")
                 .map(RunLog::getFinishedAt).orElse(null));
         return out;
+    }
+
+    /**
+     * "java python" -> "java|python": a job matches if it mentions ANY of the words.
+     * Each word is quoted so characters like "c++" or ".net" are matched literally.
+     */
+    static String toPattern(String q) {
+        return Arrays.stream(q.toLowerCase(Locale.ROOT).split("[\\s,]+"))
+                .map(String::strip)
+                .filter(w -> !w.isEmpty())
+                .distinct()
+                .limit(8)
+                .map(w -> w.replaceAll("([\\\\.\\[\\]{}()*+?^$|])", "\\\\$1"))
+                .collect(Collectors.joining("|"));
     }
 
     private static List<Map<String, Object>> toCounts(List<Object[]> rows, int limit) {
