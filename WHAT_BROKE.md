@@ -66,6 +66,11 @@ Real problems hit while building, logged as they happened.
 - **Fix:** (a) Java rule: a junior or senior word in the title overrides the model, with unit tests; (b) prompt says the title beats job-board fields and "no info = not fresher"; (c) send 2,000 chars instead of 800.
 - **Measured on the same 50:** v1 role 76% / city 98% / fresher 84%. v2 (also added role definitions) fresher 96% but role fell to 70%, because the definitions disagreed with my labels on fuzzy roles (collections, architects). v3 = v2 without role definitions: role 76% / city 98% / fresher 96%; all three right 64% → 70%. Kept v3. Caveat: tuned and tested on the same 50, so the gain may be a bit optimistic.
 
+### 14. Searching "java python" found nothing
+- **Problem:** Testing the site myself, a two-word search returned 0 jobs.
+- **Cause:** Search matched the whole text as one phrase, and only in title/company/location. Skills are usually in the description.
+- **Fix:** Split into words, match any word (case-insensitive regex, special characters like `c++` escaped) across title, company, location and description; title matches are shown first. "java python" now finds 439 jobs. Unit-tested.
+
 ### 8. Neon project first created in the wrong region
 - **Problem:** Neon defaulted to AWS US East (Ohio) while Render runs in Singapore.
 - **Cause:** Didn't pick the region on project creation.
